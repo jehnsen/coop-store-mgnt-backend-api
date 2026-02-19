@@ -1,638 +1,687 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services;
 
+use App\Exceptions\WalletRestrictionException;
+use App\Models\CustomerWallet;
+use App\Models\HeldTransaction;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SalePayment;
-use App\Models\HeldTransaction;
-use App\Models\Product;
-use App\Models\Customer;
-use App\Models\CreditTransaction;
 use App\Events\SaleCompleted;
 use App\Events\SaleVoided;
+use App\Repositories\Contracts\CustomerRepositoryInterface;
+use App\Repositories\Contracts\CustomerWalletRepositoryInterface;
+use App\Repositories\Contracts\CreditTransactionRepositoryInterface;
 use App\Repositories\Contracts\ProductRepositoryInterface;
 use App\Repositories\Contracts\SaleRepositoryInterface;
-use App\Repositories\Contracts\CustomerRepositoryInterface;
-use App\Repositories\Contracts\CreditTransactionRepositoryInterface;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class SaleService
 {
-    protected InventoryService $inventoryService;
-    protected ProductRepositoryInterface $productRepo;
-    protected SaleRepositoryInterface $saleRepo;
-    protected CustomerRepositoryInterface $customerRepo;
+    protected InventoryService                    $inventoryService;
+    protected CreditService                       $creditService;       // MPC addition
+    protected ProductRepositoryInterface          $productRepo;
+    protected SaleRepositoryInterface             $saleRepo;
+    protected CustomerRepositoryInterface         $customerRepo;
     protected CreditTransactionRepositoryInterface $creditTransactionRepo;
+    protected CustomerWalletRepositoryInterface   $walletRepo;          // MPC addition
 
     public function __construct(
-        InventoryService $inventoryService,
-        ProductRepositoryInterface $productRepo,
-        SaleRepositoryInterface $saleRepo,
-        CustomerRepositoryInterface $customerRepo,
-        CreditTransactionRepositoryInterface $creditTransactionRepo
+        InventoryService                    $inventoryService,
+        CreditService                       $creditService,
+        ProductRepositoryInterface          $productRepo,
+        SaleRepositoryInterface             $saleRepo,
+        CustomerRepositoryInterface         $customerRepo,
+        CreditTransactionRepositoryInterface $creditTransactionRepo,
+        CustomerWalletRepositoryInterface   $walletRepo,
     ) {
-        $this->inventoryService = $inventoryService;
-        $this->productRepo = $productRepo;
-        $this->saleRepo = $saleRepo;
-        $this->customerRepo = $customerRepo;
+        $this->inventoryService      = $inventoryService;
+        $this->creditService         = $creditService;
+        $this->productRepo           = $productRepo;
+        $this->saleRepo              = $saleRepo;
+        $this->customerRepo          = $customerRepo;
         $this->creditTransactionRepo = $creditTransactionRepo;
+        $this->walletRepo            = $walletRepo;
     }
 
+    // =========================================================================
+    // Sale Creation
+    // =========================================================================
+
     /**
-     * Create a new sale with 19-step process.
+     * Create a new completed sale.
      *
-     * @param array $data
-     * @return Sale
+     * MPC changes vs. original:
+     *   - Customer is loaded early (before totals) so is_member can suppress VAT.
+     *   - Wallet payments (method: 'wallet') are validated for category restrictions
+     *     BEFORE the DB transaction opens.
+     *   - Inside the DB transaction, each wallet payment calls
+     *     CreditService::payWithWallet() which deducts the wallet balance and
+     *     creates a linked CreditTransaction.
+     *
      * @throws ValidationException
+     * @throws WalletRestrictionException
      */
     public function createSale(array $data): Sale
     {
-        $user = Auth::user();
+        $user  = Auth::user();
         $store = $user->store;
 
-        // Step 1: Validate products belong to authenticated user's store
+        // ------------------------------------------------------------------
+        // Step 1: Validate products belong to this store
+        // ------------------------------------------------------------------
         $productIds = collect($data['items'])->pluck('product_id')->toArray();
         $this->validateProductsBelongToStore($productIds, $store->id);
 
-        // Step 2: Load all products from database via repository
+        // ------------------------------------------------------------------
+        // Step 2: Load products (keyed by UUID for O(1) lookup)
+        // ------------------------------------------------------------------
         $products = $this->productRepo->findManyByUuids($productIds)->keyBy('uuid');
 
         if ($products->count() !== count($productIds)) {
             throw ValidationException::withMessages([
-                'items' => ['One or more products not found or inactive.']
+                'items' => ['One or more products not found or inactive.'],
             ]);
         }
 
-        // Step 3: Check stock availability
-        $stockValidation = $this->inventoryService->validateStockAvailability($data['items']);
-        if (!$stockValidation['available']) {
-            throw ValidationException::withMessages([
-                'items' => $stockValidation['errors']
-            ]);
-        }
+        // ------------------------------------------------------------------
+        // Step 2a (MPC): Early customer load for is_member flag & wallets
+        // ------------------------------------------------------------------
+        $customer          = null;
+        $hasCreditPayment  = collect($data['payments'])->contains('method', 'credit');
+        $walletPaymentRows = collect($data['payments'])->where('method', 'wallet');
+        $hasWalletPayment  = $walletPaymentRows->isNotEmpty();
 
-        // Step 4-8: Calculate totals
-        $calculations = $this->calculateTotals(
-            $data['items'],
-            $data['discount_type'] ?? null,
-            $data['discount_value'] ?? null,
-            $store->vat_rate ?? 12,
-            $store->vat_inclusive ?? true
-        );
-
-        // Step 9: Validate payment amounts
-        $paymentTotal = collect($data['payments'])->sum('amount');
-        $difference = abs($calculations['total_amount'] - $paymentTotal);
-
-        if ($difference > 1) { // Allow 1 centavo tolerance
-            throw ValidationException::withMessages([
-                'payments' => [
-                    sprintf(
-                        'Payment total (₱%s) does not match calculated total (₱%s). Difference: ₱%s',
-                        number_format($paymentTotal / 100, 2),
-                        number_format($calculations['total_amount'] / 100, 2),
-                        number_format($difference / 100, 2)
-                    )
-                ]
-            ]);
-        }
-
-        // Step 10: Validate credit payment
-        $customer = null;
-        $hasCreditPayment = collect($data['payments'])->contains('method', 'credit');
-
-        if ($hasCreditPayment) {
-            if (empty($data['customer_id'])) {
-                throw ValidationException::withMessages([
-                    'customer_id' => ['Customer is required for credit payments.']
-                ]);
-            }
-
-            $customer = $this->customerRepo->findByUuidOrFail($data['customer_id']);
-
-            $this->validateCreditLimit($customer, $calculations['total_amount']);
-        } elseif (!empty($data['customer_id'])) {
+        if (!empty($data['customer_id'])) {
             $customer = $this->customerRepo->findByUuid($data['customer_id']);
         }
 
-        // Step 11: Begin database transaction
-        return DB::transaction(function () use ($data, $calculations, $products, $store, $user, $customer, $hasCreditPayment) {
-            // Step 12: Generate sale number via repository
+        // Customer is mandatory for credit or wallet payments
+        if (($hasCreditPayment || $hasWalletPayment) && $customer === null) {
+            throw ValidationException::withMessages([
+                'customer_id' => ['Customer is required for credit or wallet payments.'],
+            ]);
+        }
+
+        // ------------------------------------------------------------------
+        // Step 2b (MPC): Pre-load & validate each wallet BEFORE the transaction
+        //
+        //   - Each wallet payment row must carry a wallet_uuid.
+        //   - The wallet must be active and belong to the customer.
+        //   - validateWalletUsage() throws WalletRestrictionException if any
+        //     cart item's category is not whitelisted in that wallet.
+        // ------------------------------------------------------------------
+        $walletsById = [];   // [wallet_uuid => CustomerWallet] map for reuse inside TX
+
+        if ($hasWalletPayment) {
+            foreach ($walletPaymentRows as $paymentRow) {
+                $walletUuid = $paymentRow['wallet_uuid'];
+
+                if (isset($walletsById[$walletUuid])) {
+                    // Same wallet appears twice in the payments array; summing
+                    // amounts is not supported – each wallet entry must be unique.
+                    throw ValidationException::withMessages([
+                        'payments' => ["Duplicate wallet UUID detected: {$walletUuid}. Each wallet may appear only once per sale."],
+                    ]);
+                }
+
+                $wallet = $this->walletRepo->findByUuidAndCustomer(
+                    $walletUuid,
+                    $customer->id,
+                );
+
+                if ($wallet === null || $wallet->status !== 'active') {
+                    throw ValidationException::withMessages([
+                        'payments' => ["Wallet {$walletUuid} not found, inactive, or does not belong to this customer."],
+                    ]);
+                }
+
+                // Category restriction guard — throws WalletRestrictionException
+                $this->creditService->validateWalletUsage($wallet, $data['items'], $products);
+
+                $walletsById[$walletUuid] = $wallet;
+            }
+        }
+
+        // ------------------------------------------------------------------
+        // Step 3: Check stock availability (service items skip this)
+        // ------------------------------------------------------------------
+        $stockValidation = $this->inventoryService->validateStockAvailability($data['items']);
+        if (!$stockValidation['available']) {
+            throw ValidationException::withMessages([
+                'items' => $stockValidation['errors'],
+            ]);
+        }
+
+        // ------------------------------------------------------------------
+        // Steps 4-8 (MPC): Calculate totals
+        //   If the customer is a cooperative member, VAT is waived entirely.
+        //   Pass $isMember to calculateTotals() so it zeroes out the VAT.
+        // ------------------------------------------------------------------
+        $isMember = $customer?->is_member ?? false;
+
+        $calculations = $this->calculateTotals(
+            items:         $data['items'],
+            discountType:  $data['discount_type']  ?? null,
+            discountValue: $data['discount_value'] ?? null,
+            vatRate:       $store->vat_rate        ?? 12,
+            vatInclusive:  $store->vat_inclusive   ?? true,
+            isMember:      $isMember,
+        );
+
+        // ------------------------------------------------------------------
+        // Step 9: Validate payment total covers the calculated total
+        // ------------------------------------------------------------------
+        $paymentTotal = collect($data['payments'])->sum('amount');
+        $difference   = abs($calculations['total_amount'] - $paymentTotal);
+
+        if ($difference > 1) {   // 1-centavo rounding tolerance
+            throw ValidationException::withMessages([
+                'payments' => [sprintf(
+                    'Payment total (₱%s) does not match calculated total (₱%s). Difference: ₱%s',
+                    number_format($paymentTotal / 100, 2),
+                    number_format($calculations['total_amount'] / 100, 2),
+                    number_format($difference / 100, 2),
+                )],
+            ]);
+        }
+
+        // ------------------------------------------------------------------
+        // Step 10: Validate legacy credit limit (only for method: 'credit')
+        // ------------------------------------------------------------------
+        if ($hasCreditPayment && $customer) {
+            $this->validateCreditLimit($customer, $calculations['total_amount']);
+        }
+
+        // ------------------------------------------------------------------
+        // Steps 11–19: Persist everything inside a single DB transaction
+        // ------------------------------------------------------------------
+        return DB::transaction(function () use (
+            $data, $calculations, $products, $store, $user,
+            $customer, $hasCreditPayment, $hasWalletPayment,
+            $walletPaymentRows, $walletsById, $isMember
+        ) {
+            // Step 12: Generate unique, sequential sale number
             $saleNumber = $this->saleRepo->getNextSaleNumber();
 
-            // Step 13: Create Sale record via repository
+            // Step 13: Create the Sale header
             $sale = $this->saleRepo->create([
-                'uuid' => \Illuminate\Support\Str::uuid(),
-                'store_id' => $store->id,
-                'branch_id' => $user->branch_id,
-                'customer_id' => $customer?->id,
-                'user_id' => $user->id,
-                'sale_number' => $saleNumber,
-                'sale_date' => now(),
-                'status' => 'completed',
-                'price_tier' => $data['price_tier'],
-                'subtotal' => $calculations['subtotal'],
-                'discount_type' => $data['discount_type'] ?? null,
+                'uuid'           => \Illuminate\Support\Str::uuid(),
+                'store_id'       => $store->id,
+                'branch_id'      => $user->branch_id,
+                'customer_id'    => $customer?->id,
+                'user_id'        => $user->id,
+                'sale_number'    => $saleNumber,
+                'sale_date'      => now(),
+                'status'         => 'completed',
+                'price_tier'     => $data['price_tier'],
+                'subtotal'       => $calculations['subtotal'],
+                'discount_type'  => $data['discount_type']  ?? null,
                 'discount_value' => $data['discount_value'] ?? null,
-                'discount_amount' => $calculations['discount_amount'],
-                'vat_amount' => $calculations['vat_amount'],
-                'total_amount' => $calculations['total_amount'],
-                'notes' => $data['notes'] ?? null,
+                'discount_amount'=> $calculations['discount_amount'],
+                'vat_amount'     => $calculations['vat_amount'],
+                'total_amount'   => $calculations['total_amount'],
+                'notes'          => $data['notes'] ?? null,
             ]);
 
             // Step 14: Create SaleItem records
             foreach ($data['items'] as $itemData) {
-                $product = $products[$itemData['product_id']];
-
-                // Calculate item discount
-                $lineTotal = $itemData['quantity'] * $itemData['unit_price'];
-                $itemDiscountAmount = 0;
+                $product          = $products[$itemData['product_id']];
+                $lineTotal        = $itemData['quantity'] * $itemData['unit_price'];
+                $itemDiscountAmt  = 0;
 
                 if (!empty($itemData['discount_type']) && !empty($itemData['discount_value'])) {
-                    if ($itemData['discount_type'] === 'percentage') {
-                        $itemDiscountAmount = $lineTotal * ($itemData['discount_value'] / 100);
-                    } else {
-                        $itemDiscountAmount = $itemData['discount_value'] * 100; // Convert to centavos
-                    }
+                    $itemDiscountAmt = $itemData['discount_type'] === 'percentage'
+                        ? $lineTotal * ($itemData['discount_value'] / 100)
+                        : $itemData['discount_value'] * 100;
                 }
 
-                $lineTotalAfterDiscount = $lineTotal - $itemDiscountAmount;
-
                 SaleItem::create([
-                    'sale_id' => $sale->id,
-                    'product_id' => $product->id,
-                    'quantity' => $itemData['quantity'],
-                    'unit_price' => $itemData['unit_price'],
-                    'discount_type' => $itemData['discount_type'] ?? null,
+                    'sale_id'        => $sale->id,
+                    'product_id'     => $product->id,
+                    'quantity'       => $itemData['quantity'],
+                    'unit_price'     => $itemData['unit_price'],
+                    'discount_type'  => $itemData['discount_type']  ?? null,
                     'discount_value' => $itemData['discount_value'] ?? null,
-                    'discount_amount' => round($itemDiscountAmount),
-                    'line_total' => round($lineTotalAfterDiscount),
+                    'discount_amount'=> round($itemDiscountAmt),
+                    'line_total'     => round($lineTotal - $itemDiscountAmt),
                 ]);
             }
 
-            // Step 15: Create SalePayment records
+            // Step 15: Create SalePayment records + process wallet debits
             foreach ($data['payments'] as $paymentData) {
                 SalePayment::create([
-                    'sale_id' => $sale->id,
-                    'method' => $paymentData['method'],
-                    'amount' => $paymentData['amount'],
+                    'sale_id'          => $sale->id,
+                    'method'           => $paymentData['method'],
+                    'amount'           => $paymentData['amount'],
                     'reference_number' => $paymentData['reference_number'] ?? null,
                 ]);
+
+                // MPC: debit the specific wallet and write a linked CreditTransaction
+                if ($paymentData['method'] === 'wallet') {
+                    $wallet = $walletsById[$paymentData['wallet_uuid']];
+                    $this->creditService->payWithWallet($wallet, (int) $paymentData['amount'], $sale);
+                }
             }
 
-            // Step 16: Deduct inventory
+            // Step 16: Deduct inventory (skips is_service products)
             foreach ($data['items'] as $itemData) {
                 $product = $products[$itemData['product_id']];
 
-                // Only deduct if product tracks inventory
                 if ($product->track_inventory) {
-                    $branch = $user->branch;
                     $this->inventoryService->deductStock(
                         $product,
                         $itemData['quantity'],
                         "Sale #{$saleNumber}",
-                        $branch
+                        $user->branch,
                     );
                 }
             }
 
-            // Step 17: Handle credit payment
+            // Step 17: Handle legacy credit payment
             if ($hasCreditPayment && $customer) {
                 $creditAmount = collect($data['payments'])
                     ->where('method', 'credit')
                     ->sum('amount');
 
-                // Update customer outstanding balance
                 $customer->increment('total_outstanding', $creditAmount);
 
-                // Create credit transaction record via repository
                 $this->creditTransactionRepo->create([
-                    'customer_id' => $customer->id,
-                    'sale_id' => $sale->id,
-                    'type' => 'charge',
-                    'amount' => $creditAmount,
-                    'balance' => $customer->fresh()->total_outstanding,
-                    'description' => "Credit charge for sale #{$saleNumber}",
+                    'customer_id'      => $customer->id,
+                    'sale_id'          => $sale->id,
+                    'type'             => 'charge',
+                    'amount'           => $creditAmount,
+                    'balance'          => $customer->fresh()->total_outstanding,
+                    'description'      => "Credit charge for sale #{$saleNumber}",
                     'transaction_date' => now(),
                 ]);
             }
 
-            // Step 18: Update customer total purchases
+            // Step 18: Update customer lifetime totals
             if ($customer) {
                 $customer->increment('total_purchases', $calculations['total_amount']);
+
+                // MPC: increment accumulated_patronage for cooperative dividend tracking
+                if ($isMember) {
+                    $customer->increment('accumulated_patronage', $calculations['total_amount']);
+                }
+
                 $customer->update(['last_purchase_date' => now()]);
             }
 
             // Step 19: Load relationships and dispatch event
             $sale->load(['customer', 'items.product', 'payments', 'user', 'branch']);
-
             event(new SaleCompleted($sale));
 
             return $sale;
         });
     }
 
+    // =========================================================================
+    // Void & Refund
+    // =========================================================================
+
     /**
-     * Void a sale with 9-step process.
+     * Void a sale, restoring inventory and reversing wallet/credit charges.
      *
-     * @param Sale $sale
-     * @param string $reason
-     * @return Sale
+     * MPC addition: if the original sale had wallet payments, each wallet's
+     * balance is restored via CreditService::reverseWalletCharge().
+     *
      * @throws ValidationException
      */
     public function voidSale(Sale $sale, string $reason): Sale
     {
         $user = Auth::user();
 
-        // Step 1: Validate sale not already voided
         if ($sale->status === 'voided') {
             throw ValidationException::withMessages([
-                'sale' => ['This sale has already been voided.']
+                'sale' => ['This sale has already been voided.'],
             ]);
         }
 
-        // Step 2: Validate sale is from same store
         if ($sale->store_id !== $user->store_id) {
             throw ValidationException::withMessages([
-                'sale' => ['You do not have permission to void this sale.']
+                'sale' => ['You do not have permission to void this sale.'],
             ]);
         }
 
-        // Step 3: Begin transaction
         return DB::transaction(function () use ($sale, $reason, $user) {
-            // Step 4: Restore inventory
+            // Restore inventory
             foreach ($sale->items as $item) {
-                $product = $item->product;
-
-                // Only restore if product tracks inventory
-                if ($product->track_inventory) {
-                    $branch = $sale->branch;
+                if ($item->product->track_inventory) {
                     $this->inventoryService->restoreStock(
-                        $product,
+                        $item->product,
                         $item->quantity,
                         "Void sale #{$sale->sale_number}",
-                        $branch
+                        $sale->branch,
                     );
                 }
             }
 
-            // Step 5: Reverse credit payment if exists
-            $creditPayment = $sale->payments->firstWhere('method', 'credit');
+            // Reverse payments
+            foreach ($sale->payments as $payment) {
+                if ($payment->method === 'wallet' && $sale->customer) {
+                    // MPC: restore wallet balance and write reversal CreditTransaction
+                    $walletTransaction = $this->creditTransactionRepo
+                        ->where('sale_id', $sale->id)
+                        ->where('type', 'charge')
+                        ->all()
+                        ->first(fn ($t) => $t->wallet_id !== null);
 
-            if ($creditPayment && $sale->customer) {
-                $customer = $sale->customer;
+                    if ($walletTransaction?->wallet) {
+                        $this->creditService->reverseWalletCharge(
+                            wallet:         $walletTransaction->wallet,
+                            amountCentavos: (int) abs($payment->getRawOriginal('amount') ?? $payment->amount * 100),
+                            sale:           $sale,
+                            reason:         $reason,
+                        );
+                    }
+                }
 
-                // Decrease outstanding balance
-                $customer->decrement('total_outstanding', $creditPayment->amount);
+                if ($payment->method === 'credit' && $sale->customer) {
+                    $customer = $sale->customer;
+                    $customer->decrement('total_outstanding', $payment->amount);
 
-                // Mark credit transaction as reversed - find via repository
-                $creditTransactions = $this->creditTransactionRepo
-                    ->where('sale_id', $sale->id)
-                    ->where('type', 'charge')
-                    ->all();
+                    $creditTransaction = $this->creditTransactionRepo
+                        ->where('sale_id', $sale->id)
+                        ->where('type', 'charge')
+                        ->all()
+                        ->first(fn ($t) => $t->wallet_id === null);
 
-                $creditTransaction = $creditTransactions->first();
+                    if ($creditTransaction) {
+                        $creditTransaction->update([
+                            'is_reversed' => true,
+                            'reversed_at' => now(),
+                            'reversed_by' => $user->id,
+                        ]);
 
-                if ($creditTransaction) {
-                    $creditTransaction->update([
-                        'is_reversed' => true,
-                        'reversed_at' => now(),
-                        'reversed_by' => $user->id,
-                    ]);
-
-                    // Create reversal transaction via repository
-                    $this->creditTransactionRepo->create([
-                        'customer_id' => $customer->id,
-                        'sale_id' => $sale->id,
-                        'type' => 'reversal',
-                        'amount' => -$creditPayment->amount,
-                        'balance' => $customer->fresh()->total_outstanding,
-                        'description' => "Reversal of sale #{$sale->sale_number} - {$reason}",
-                        'transaction_date' => now(),
-                    ]);
+                        $this->creditTransactionRepo->create([
+                            'customer_id'      => $customer->id,
+                            'sale_id'          => $sale->id,
+                            'type'             => 'reversal',
+                            'amount'           => -$payment->amount,
+                            'balance'          => $customer->fresh()->total_outstanding,
+                            'description'      => "Reversal of sale #{$sale->sale_number} – {$reason}",
+                            'transaction_date' => now(),
+                        ]);
+                    }
                 }
             }
 
-            // Step 6: Update sale status
             $sale->update([
-                'status' => 'voided',
-                'voided_at' => now(),
-                'voided_by' => $user->id,
-                'void_reason' => $reason,
+                'status'     => 'voided',
+                'voided_at'  => now(),
+                'voided_by'  => $user->id,
+                'void_reason'=> $reason,
             ]);
 
-            // Step 7: Update customer total purchases
             if ($sale->customer) {
                 $sale->customer->decrement('total_purchases', $sale->total_amount);
             }
 
-            // Step 8: Reload relationships
             $sale->load(['customer', 'items.product', 'payments', 'user', 'branch', 'voidedBy']);
-
-            // Dispatch event
             event(new SaleVoided($sale, $reason));
 
-            // Step 9: Return updated sale
             return $sale;
         });
     }
 
-    /**
-     * Refund a sale (partial or full).
-     *
-     * @param Sale $sale
-     * @param array|null $items
-     * @param string $reason
-     * @param string $refundMethod
-     * @return Sale
-     * @throws ValidationException
-     */
+    /** Refund a sale (partial or full). */
     public function refundSale(Sale $sale, ?array $items, string $reason, string $refundMethod): Sale
     {
         $user = Auth::user();
 
-        // Validate sale not voided
         if ($sale->status === 'voided') {
             throw ValidationException::withMessages([
-                'sale' => ['Cannot refund a voided sale.']
+                'sale' => ['Cannot refund a voided sale.'],
             ]);
         }
 
-        // Validate sale is from same store
         if ($sale->store_id !== $user->store_id) {
             throw ValidationException::withMessages([
-                'sale' => ['You do not have permission to refund this sale.']
+                'sale' => ['You do not have permission to refund this sale.'],
             ]);
         }
 
         return DB::transaction(function () use ($sale, $items, $reason, $refundMethod, $user) {
             $refundAmount = 0;
 
-            // If no items specified, full refund
             if (empty($items)) {
-                $items = $sale->items->map(function ($item) {
-                    return [
-                        'sale_item_id' => $item->id,
-                        'quantity' => $item->quantity,
-                    ];
-                })->toArray();
+                $items = $sale->items->map(fn ($item) => [
+                    'sale_item_id' => $item->id,
+                    'quantity'     => $item->quantity,
+                ])->toArray();
             }
 
-            // Process each refund item
             foreach ($items as $itemData) {
-                $saleItem = SaleItem::findOrFail($itemData['sale_item_id']);
-
-                // Calculate refund amount for this item
-                $itemRefundAmount = ($saleItem->unit_price * $itemData['quantity']) -
-                                   ($saleItem->discount_amount * ($itemData['quantity'] / $saleItem->quantity));
+                $saleItem        = SaleItem::findOrFail($itemData['sale_item_id']);
+                $itemRefundAmount = ($saleItem->unit_price * $itemData['quantity'])
+                                  - ($saleItem->discount_amount * ($itemData['quantity'] / $saleItem->quantity));
 
                 $refundAmount += $itemRefundAmount;
 
-                // Create negative sale item entry
                 SaleItem::create([
-                    'sale_id' => $sale->id,
-                    'product_id' => $saleItem->product_id,
+                    'sale_id'         => $sale->id,
+                    'product_id'      => $saleItem->product_id,
                     'parent_sale_item_id' => $saleItem->id,
-                    'quantity' => -$itemData['quantity'],
-                    'unit_price' => $saleItem->unit_price,
-                    'discount_type' => $saleItem->discount_type,
-                    'discount_value' => $saleItem->discount_value,
+                    'quantity'        => -$itemData['quantity'],
+                    'unit_price'      => $saleItem->unit_price,
+                    'discount_type'   => $saleItem->discount_type,
+                    'discount_value'  => $saleItem->discount_value,
                     'discount_amount' => -round($saleItem->discount_amount * ($itemData['quantity'] / $saleItem->quantity)),
-                    'line_total' => -round($itemRefundAmount),
+                    'line_total'      => -round($itemRefundAmount),
                 ]);
 
-                // Restore inventory
-                $product = $saleItem->product;
-                if ($product->track_inventory) {
-                    $branch = $sale->branch;
+                if ($saleItem->product->track_inventory) {
                     $this->inventoryService->restoreStock(
-                        $product,
+                        $saleItem->product,
                         $itemData['quantity'],
-                        "Refund for sale #{$sale->sale_number} - {$reason}",
-                        $branch
+                        "Refund for sale #{$sale->sale_number} – {$reason}",
+                        $sale->branch,
                     );
                 }
             }
 
-            // Create refund payment record (negative amount)
             SalePayment::create([
-                'sale_id' => $sale->id,
-                'method' => $refundMethod,
-                'amount' => -round($refundAmount),
+                'sale_id'          => $sale->id,
+                'method'           => $refundMethod,
+                'amount'           => -round($refundAmount),
                 'reference_number' => 'REFUND-' . now()->format('YmdHis'),
             ]);
 
-            // Update sale status if full refund
             $totalRefunded = $sale->items()->where('quantity', '<', 0)->sum('line_total');
-            $totalSold = $sale->items()->where('quantity', '>', 0)->sum('line_total');
+            $totalSold     = $sale->items()->where('quantity', '>', 0)->sum('line_total');
 
             if (abs($totalRefunded) >= $totalSold) {
                 $sale->update(['status' => 'refunded']);
             }
 
-            // Update customer totals if applicable
             if ($sale->customer) {
                 $sale->customer->decrement('total_purchases', round($refundAmount));
             }
 
-            // Reload relationships
             $sale->load(['customer', 'items.product', 'payments', 'user', 'branch']);
 
             return $sale;
         });
     }
 
-    /**
-     * Hold a transaction for later.
-     *
-     * @param array $cartData
-     * @param string $name
-     * @return HeldTransaction
-     */
+    // =========================================================================
+    // Held Transactions
+    // =========================================================================
+
     public function holdTransaction(array $cartData, string $name): HeldTransaction
     {
         $user = Auth::user();
 
         return HeldTransaction::create([
-            'store_id' => $user->store_id,
+            'store_id'  => $user->store_id,
             'branch_id' => $user->branch_id,
-            'user_id' => $user->id,
-            'name' => $name,
+            'user_id'   => $user->id,
+            'name'      => $name,
             'cart_data' => $cartData,
-            'expires_at' => now()->addHours(24),
+            'expires_at'=> now()->addHours(24),
         ]);
     }
 
-    /**
-     * Resume a held transaction.
-     *
-     * @param HeldTransaction $held
-     * @return array
-     * @throws ValidationException
-     */
     public function resumeTransaction(HeldTransaction $held): array
     {
-        // Validate not expired
         if ($held->expires_at < now()) {
             throw ValidationException::withMessages([
-                'transaction' => ['This held transaction has expired.']
+                'transaction' => ['This held transaction has expired.'],
             ]);
         }
 
-        // Validate belongs to same store
         if ($held->store_id !== Auth::user()->store_id) {
             throw ValidationException::withMessages([
-                'transaction' => ['You do not have permission to resume this transaction.']
+                'transaction' => ['You do not have permission to resume this transaction.'],
             ]);
         }
 
         $cartData = $held->cart_data;
-
-        // Delete the held transaction
         $held->delete();
 
         return $cartData;
     }
 
-    /**
-     * Discard a held transaction.
-     *
-     * @param HeldTransaction $held
-     * @return bool
-     * @throws ValidationException
-     */
     public function discardHeldTransaction(HeldTransaction $held): bool
     {
-        // Validate belongs to same store
         if ($held->store_id !== Auth::user()->store_id) {
             throw ValidationException::withMessages([
-                'transaction' => ['You do not have permission to discard this transaction.']
+                'transaction' => ['You do not have permission to discard this transaction.'],
             ]);
         }
 
         return $held->delete();
     }
 
+    // =========================================================================
+    // Totals calculation
+    // =========================================================================
 
     /**
-     * Calculate all totals in centavos.
+     * Calculate all monetary totals, returning centavo integers.
      *
-     * @param array $items
-     * @param string|null $discountType
-     * @param float|null $discountValue
-     * @param float $vatRate
-     * @param bool $vatInclusive
-     * @return array
+     * MPC change: $isMember = true zeroes out all VAT/tax regardless of the
+     * store's vat_rate setting.  This reflects BIR-exempt cooperative sales
+     * under RA 9520 (Philippine Cooperative Code).
+     *
+     * @param  array       $items
+     * @param  string|null $discountType  'percentage' | 'fixed'
+     * @param  float|null  $discountValue
+     * @param  float       $vatRate       Percentage (e.g. 12 for 12 %)
+     * @param  bool        $vatInclusive  True = VAT baked into prices
+     * @param  bool        $isMember      MPC: suppress VAT for cooperative members
+     * @return array{subtotal: int, discount_amount: int, subtotal_after_discount: int, vat_amount: int, total_amount: int}
      */
     public function calculateTotals(
-        array $items,
+        array   $items,
         ?string $discountType,
-        ?float $discountValue,
-        float $vatRate,
-        bool $vatInclusive
+        ?float  $discountValue,
+        float   $vatRate,
+        bool    $vatInclusive,
+        bool    $isMember = false,   // MPC
     ): array {
-        // Calculate subtotal (sum of line totals after item discounts)
+        // --- Item subtotal ---------------------------------------------------
         $subtotal = 0;
 
         foreach ($items as $item) {
             $lineTotal = $item['quantity'] * $item['unit_price'];
 
-            // Apply item-level discount
             if (!empty($item['discount_type']) && !empty($item['discount_value'])) {
-                if ($item['discount_type'] === 'percentage') {
-                    $lineTotal = $lineTotal - ($lineTotal * ($item['discount_value'] / 100));
-                } else {
-                    $lineTotal = $lineTotal - ($item['discount_value'] * 100); // Convert to centavos
-                }
+                $lineTotal -= $item['discount_type'] === 'percentage'
+                    ? $lineTotal * ($item['discount_value'] / 100)
+                    : $item['discount_value'] * 100;
             }
 
             $subtotal += $lineTotal;
         }
 
-        // Round subtotal
-        $subtotal = round($subtotal);
+        $subtotal = (int) round($subtotal);
 
-        // Calculate order-level discount
+        // --- Order-level discount --------------------------------------------
         $discountAmount = 0;
+
         if (!empty($discountType) && !empty($discountValue)) {
-            if ($discountType === 'percentage') {
-                $discountAmount = $subtotal * ($discountValue / 100);
+            $discountAmount = $discountType === 'percentage'
+                ? $subtotal * ($discountValue / 100)
+                : $discountValue * 100;
+        }
+
+        $discountAmount         = (int) round($discountAmount);
+        $subtotalAfterDiscount  = $subtotal - $discountAmount;
+
+        // --- VAT / Tax -------------------------------------------------------
+        // MPC: cooperative members are VAT-exempt. Zero out tax entirely.
+        $vatAmount   = 0;
+        $totalAmount = $subtotalAfterDiscount;
+
+        if (!$isMember && $vatRate > 0) {
+            if ($vatInclusive) {
+                // VAT already baked in: extract it from the price
+                $vatAmount = $subtotalAfterDiscount * ($vatRate / (100 + $vatRate));
+                // total_amount stays the same (VAT inclusive means no extra charge)
             } else {
-                $discountAmount = $discountValue * 100; // Convert to centavos
+                // VAT added on top
+                $vatAmount   = $subtotalAfterDiscount * ($vatRate / 100);
+                $totalAmount = $subtotalAfterDiscount + $vatAmount;
             }
         }
 
-        $discountAmount = round($discountAmount);
-        $subtotalAfterDiscount = $subtotal - $discountAmount;
-
-        // Calculate VAT
-        $vatAmount = 0;
-        $totalAmount = $subtotalAfterDiscount;
-
-        if ($vatInclusive) {
-            // VAT is already included in the price
-            $vatAmount = $subtotalAfterDiscount * ($vatRate / (100 + $vatRate));
-        } else {
-            // VAT is added to the price
-            $vatAmount = $subtotalAfterDiscount * ($vatRate / 100);
-            $totalAmount = $subtotalAfterDiscount + $vatAmount;
-        }
-
-        $vatAmount = round($vatAmount);
-        $totalAmount = round($totalAmount);
-
         return [
-            'subtotal' => (int) $subtotal,
-            'discount_amount' => (int) $discountAmount,
-            'subtotal_after_discount' => (int) $subtotalAfterDiscount,
-            'vat_amount' => (int) $vatAmount,
-            'total_amount' => (int) $totalAmount,
+            'subtotal'               => $subtotal,
+            'discount_amount'        => $discountAmount,
+            'subtotal_after_discount'=> (int) $subtotalAfterDiscount,
+            'vat_amount'             => (int) round($vatAmount),
+            'total_amount'           => (int) round($totalAmount),
         ];
     }
 
+    // =========================================================================
+    // Private helpers
+    // =========================================================================
+
     /**
-     * Validate products belong to store.
+     * Confirm every UUID in $productIds resolves to a product in $storeId.
+     * The repository already applies the store_id global scope, so a count
+     * mismatch means a product belongs to another store or doesn't exist.
      *
-     * @param array $productIds
-     * @param int $storeId
      * @throws ValidationException
      */
     protected function validateProductsBelongToStore(array $productIds, int $storeId): void
     {
-        // Use repository to find products - repository applies store_id filter automatically
         $count = $this->productRepo->findManyByUuids($productIds)->count();
 
         if ($count !== count($productIds)) {
             throw ValidationException::withMessages([
-                'items' => ['One or more products do not belong to your store or are inactive.']
+                'items' => ['One or more products do not belong to your store or are inactive.'],
             ]);
         }
     }
 
-
     /**
-     * Validate customer credit limit.
+     * Validate legacy single credit_limit on customer (non-wallet credit flow).
      *
-     * @param Customer $customer
-     * @param int $saleAmount
      * @throws ValidationException
      */
-    protected function validateCreditLimit(Customer $customer, int $saleAmount): void
+    protected function validateCreditLimit(\App\Models\Customer $customer, int $saleAmount): void
     {
-        $availableCredit = $customer->credit_limit - $customer->total_outstanding;
+        $creditLimitCentavos  = (int) ($customer->getRawOriginal('credit_limit') ?? 0);
+        $outstandingCentavos  = (int) ($customer->getRawOriginal('total_outstanding') ?? 0);
+        $availableCentavos    = $creditLimitCentavos - $outstandingCentavos;
 
-        if ($availableCredit < $saleAmount) {
+        if ($availableCentavos < $saleAmount) {
             throw ValidationException::withMessages([
-                'payments' => [
-                    sprintf(
-                        'Customer credit limit exceeded. Available credit: ₱%s, Required: ₱%s',
-                        number_format($availableCredit / 100, 2),
-                        number_format($saleAmount / 100, 2)
-                    )
-                ]
+                'payments' => [sprintf(
+                    'Customer credit limit exceeded. Available credit: ₱%s, Required: ₱%s',
+                    number_format($availableCentavos / 100, 2),
+                    number_format($saleAmount / 100, 2),
+                )],
             ]);
         }
     }

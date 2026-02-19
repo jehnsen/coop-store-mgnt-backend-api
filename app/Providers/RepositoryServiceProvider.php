@@ -8,6 +8,7 @@ use Illuminate\Support\ServiceProvider;
 use App\Repositories\Contracts\ProductRepositoryInterface;
 use App\Repositories\Contracts\SaleRepositoryInterface;
 use App\Repositories\Contracts\CustomerRepositoryInterface;
+use App\Repositories\Contracts\CustomerWalletRepositoryInterface;  // MPC
 use App\Repositories\Contracts\PurchaseOrderRepositoryInterface;
 use App\Repositories\Contracts\SupplierRepositoryInterface;
 use App\Repositories\Contracts\CreditTransactionRepositoryInterface;
@@ -18,6 +19,7 @@ use App\Repositories\Contracts\DeliveryRepositoryInterface;
 use App\Repositories\Eloquent\ProductRepository;
 use App\Repositories\Eloquent\SaleRepository;
 use App\Repositories\Eloquent\CustomerRepository;
+use App\Repositories\Eloquent\CustomerWalletRepository;             // MPC
 use App\Repositories\Eloquent\PurchaseOrderRepository;
 use App\Repositories\Eloquent\SupplierRepository;
 use App\Repositories\Eloquent\CreditTransactionRepository;
@@ -32,14 +34,15 @@ class RepositoryServiceProvider extends ServiceProvider
      * @var array
      */
     protected array $repositories = [
-        ProductRepositoryInterface::class => ProductRepository::class,
-        SaleRepositoryInterface::class => SaleRepository::class,
-        CustomerRepositoryInterface::class => CustomerRepository::class,
-        SupplierRepositoryInterface::class => SupplierRepository::class,
-        PurchaseOrderRepositoryInterface::class => PurchaseOrderRepository::class,
-        CreditTransactionRepositoryInterface::class => CreditTransactionRepository::class,
-        PayableTransactionRepositoryInterface::class => PayableTransactionRepository::class,
-        DeliveryRepositoryInterface::class => DeliveryRepository::class,
+        ProductRepositoryInterface::class             => ProductRepository::class,
+        SaleRepositoryInterface::class                => SaleRepository::class,
+        CustomerRepositoryInterface::class            => CustomerRepository::class,
+        CustomerWalletRepositoryInterface::class      => CustomerWalletRepository::class,  // MPC
+        SupplierRepositoryInterface::class            => SupplierRepository::class,
+        PurchaseOrderRepositoryInterface::class       => PurchaseOrderRepository::class,
+        CreditTransactionRepositoryInterface::class   => CreditTransactionRepository::class,
+        PayableTransactionRepositoryInterface::class  => PayableTransactionRepository::class,
+        DeliveryRepositoryInterface::class            => DeliveryRepository::class,
     ];
 
     /**

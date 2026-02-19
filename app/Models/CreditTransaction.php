@@ -17,6 +17,7 @@ class CreditTransaction extends Model
         'store_id',
         'customer_id',
         'sale_id',
+        'wallet_id',   // MPC: FK to customer_wallets; null for legacy credit payments
         'user_id',
         'type',
         'reference_number',
@@ -59,6 +60,12 @@ class CreditTransaction extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /** MPC: The specific wallet that was charged for this transaction (nullable). */
+    public function wallet(): BelongsTo
+    {
+        return $this->belongsTo(CustomerWallet::class, 'wallet_id');
     }
 
     // Accessors & Mutators for centavos to pesos conversion

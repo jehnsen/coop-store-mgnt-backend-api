@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
+
 class Customer extends Model
 {
     use HasUuid, BelongsToStore, SoftDeletes;
@@ -36,13 +37,18 @@ class Customer extends Model
         'notes',
         'is_active',
         'allow_credit',
+        // MPC member fields (added 2026-02-19)
+        'is_member',
+        'member_id',
+        'accumulated_patronage',
     ];
 
     protected function casts(): array
     {
         return [
-            'is_active' => 'boolean',
+            'is_active'    => 'boolean',
             'allow_credit' => 'boolean',
+            'is_member'    => 'boolean',
         ];
     }
 
@@ -67,6 +73,12 @@ class Customer extends Model
         return $this->hasMany(SmsLog::class, 'recipient_phone', 'phone');
     }
 
+    /** MPC: Restricted credit wallets belonging to this member. */
+    public function wallets(): HasMany
+    {
+        return $this->hasMany(CustomerWallet::class);
+    }
+
     // Accessors & Mutators for centavos to pesos conversion
     protected function creditLimit(): Attribute
     {
@@ -85,6 +97,18 @@ class Customer extends Model
     }
 
     protected function totalPurchases(): Attribute
+    {
+        return Attribute::make(
+            get: fn ($value) => $value / 100,
+            set: fn ($value) => $value * 100,
+        );
+    }
+
+    /**
+     * MPC: accumulated_patronage is stored as centavos (bigInteger).
+     * Returns pesos via accessor; mutator converts pesos input → centavos.
+     */
+    protected function accumulatedPatronage(): Attribute
     {
         return Attribute::make(
             get: fn ($value) => $value / 100,

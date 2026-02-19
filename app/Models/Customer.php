@@ -40,6 +40,7 @@ class Customer extends Model
         // MPC member fields (added 2026-02-19)
         'is_member',
         'member_id',
+        'member_status',
         'accumulated_patronage',
     ];
 
@@ -77,6 +78,42 @@ class Customer extends Model
     public function wallets(): HasMany
     {
         return $this->hasMany(CustomerWallet::class);
+    }
+
+    /** MPC: Share capital accounts (a member may have regular and/or preferred). */
+    public function shareAccounts(): HasMany
+    {
+        return $this->hasMany(MemberShareAccount::class);
+    }
+
+    /** MPC: Loans taken out by this member. */
+    public function loans(): HasMany
+    {
+        return $this->hasMany(Loan::class);
+    }
+
+    /** MPC: Voluntary and compulsory savings accounts. */
+    public function savingsAccounts(): HasMany
+    {
+        return $this->hasMany(MemberSavingsAccount::class);
+    }
+
+    /** MPC: Fixed-term time deposits. */
+    public function timeDeposits(): HasMany
+    {
+        return $this->hasMany(TimeDeposit::class);
+    }
+
+    /** MPC: Membership applications submitted by this customer. */
+    public function membershipApplications(): HasMany
+    {
+        return $this->hasMany(MembershipApplication::class);
+    }
+
+    /** MPC: Membership fee payments recorded for this member. */
+    public function membershipFees(): HasMany
+    {
+        return $this->hasMany(MembershipFee::class);
     }
 
     // Accessors & Mutators for centavos to pesos conversion
@@ -130,5 +167,20 @@ class Customer extends Model
     public function scopeWithOutstanding($query)
     {
         return $query->where('total_outstanding', '>', 0);
+    }
+
+    public function scopeMembers($query)
+    {
+        return $query->where('is_member', true);
+    }
+
+    public function scopeActiveMembers($query)
+    {
+        return $query->where('is_member', true)->where('member_status', 'regular');
+    }
+
+    public function scopeApplicants($query)
+    {
+        return $query->where('member_status', 'applicant');
     }
 }

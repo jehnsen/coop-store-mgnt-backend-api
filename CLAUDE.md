@@ -1,8 +1,11 @@
-# HardwarePOS - Cloud-based Point of Sale Backend
+# CoopStore Management - Backend API
 
 ## Project Overview
 
-**HardwarePOS** is a comprehensive cloud-based Point of Sale (POS) system designed specifically for hardware stores in the Philippines. This Laravel-based backend API provides complete retail management functionality including sales, inventory, customer credit management, purchase orders, deliveries, and business analytics.
+**CoopStore Management** is a comprehensive cloud-based management system for **Multi-Purpose Cooperatives (MPC)** in the Philippines. This Laravel-based backend API covers two major functional domains:
+
+1. **Retail / POS** — Sales, inventory, customer credit, purchase orders, deliveries, and business analytics (original HardwarePOS core, repurposed for cooperative stores)
+2. **MPC / Cooperative Finance** — Share capital, lending, savings, time deposits, patronage refunds, membership lifecycle, CDA compliance reporting, and a Mutual Aid Fund (MAF)
 
 ### Key Information
 - **Framework**: Laravel 11.x
@@ -19,9 +22,9 @@
 
 ### Multi-Tenancy
 The system implements **store-level multi-tenancy**:
-- Each user belongs to a specific store
+- Each user belongs to a specific store (cooperative)
 - All data is automatically filtered by `store_id` via the `store.access` middleware
-- Complete data isolation between stores
+- Complete data isolation between stores/cooperatives
 - No manual filtering required in controllers or queries
 
 ### Middleware Stack
@@ -39,6 +42,8 @@ The system implements **store-level multi-tenancy**:
 
 This prevents floating-point precision errors in financial calculations.
 
+> **API Note**: Request bodies accept values in **pesos** (e.g. `"amount": 500.00`). Services convert to centavos before persisting.
+
 ---
 
 ## Technology Stack
@@ -52,11 +57,9 @@ This prevents floating-point precision errors in financial calculations.
 }
 ```
 
-**Note:** DomPDF and Laravel Excel packages may be installed but are not used. All PDF/Excel generation is handled by the frontend.
-
 ### Key Packages
 - **Laravel Sanctum** - API authentication with tokens
-- **Scramble** - API documentation generation
+- **Scramble** - API documentation generation (`/api/documentation`)
 - **Spatie Activity Log** - Audit trail and activity logging
 
 ### Architecture Note
@@ -69,9 +72,9 @@ This is a **pure JSON API backend**. All PDF generation, Excel exports, and UI r
 ### Core Models & Relationships
 
 #### Store & Users
-- **Store** - Multi-tenant store entity
+- **Store** - Multi-tenant cooperative entity
   - Has many: Users, Products, Sales, Customers, etc.
-- **User** - System users (admin, manager, cashier, etc.)
+- **User** - System users (admin, manager, cashier, teller, etc.)
   - Belongs to: Store, Branch
   - Has many: Sales (as cashier), ActivityLogs
   - Uses: Laravel Sanctum for API tokens
@@ -82,10 +85,7 @@ This is a **pure JSON API backend**. All PDF generation, Excel exports, and UI r
   - Has many: SaleItems, PurchaseOrderItems, StockAdjustments
   - Fields: uuid, name, sku, barcode, cost_price, retail_price, current_stock, reorder_point
 - **Category** - Product categories
-  - Belongs to: Store
-  - Has many: Products
 - **UnitOfMeasure** - Units (pcs, box, kg, etc.)
-  - Has many: Products
 
 #### Sales & POS
 - **Sale** - Sales transactions
@@ -93,44 +93,24 @@ This is a **pure JSON API backend**. All PDF generation, Excel exports, and UI r
   - Has many: SaleItems, Payments
   - Fields: uuid, sale_number, subtotal, tax, total, status, payment_method
   - Statuses: completed, voided, refunded
-- **SaleItem** - Line items in sale
-  - Belongs to: Sale, Product
-  - Fields: quantity, price, subtotal
-- **HeldTransaction** - Paused POS transactions
-  - Belongs to: Store, User
-  - Can be resumed or discarded
+- **SaleItem** - Line items in a sale
+- **HeldTransaction** - Paused POS transactions (resumable)
 
-#### Customers & Credit
-- **Customer** - Customer records
+#### Customers & Credit (AR)
+- **Customer** - Customer / member records
   - Belongs to: Store
-  - Has many: Sales, CreditTransactions, Deliveries
-  - Fields: uuid, name, type, credit_limit, credit_terms_days, current_balance
+  - Has many: Sales, CreditTransactions, Deliveries, MemberShareAccount, MemberSavingsAccount, Loans, etc.
+  - Fields: uuid, name, type, credit_limit, credit_terms_days, current_balance, member_status
   - Types: walk_in, regular, contractor, government
-- **CreditTransaction** - Credit ledger entries
-  - Belongs to: Store, Customer, Sale (optional)
-  - Types: charge, payment, adjustment
+  - Member statuses: non_member, pending, active, inactive, expelled, resigned
+- **CreditTransaction** - AR credit ledger entries (charge, payment, adjustment)
   - Payment allocation: FIFO (First In, First Out)
 
 #### Supply Chain & Accounts Payable
 - **Supplier** - Supplier management
-  - Belongs to: Store
-  - Has many: PurchaseOrders, PayableTransactions, SupplierProducts
-  - AP Fields: total_outstanding, total_purchases, payment_rating
-- **PurchaseOrder** - Purchase orders
-  - Belongs to: Store, Supplier
-  - Has many: PurchaseOrderItems, PayableTransactions
-  - Statuses: draft, submitted, received, cancelled
-  - Payment tracking: payment_status, amount_paid, payment_due_date
-- **PayableTransaction** - Accounts payable ledger
-  - Belongs to: Store, Supplier, PurchaseOrder (optional), User
-  - Types: invoice, payment, adjustment
-  - Payment allocation: FIFO (First In, First Out)
-  - Fields: uuid, amount, balance_before, balance_after, transaction_date, due_date, paid_date
-- **Delivery** - Delivery tracking
-  - Belongs to: Store, Customer, Sale (optional), Driver (User)
-  - Has many: DeliveryItems
-  - Statuses: pending, in_transit, delivered, cancelled
-  - Features: Proof of delivery (photo/signature)
+- **PurchaseOrder** - Statuses: draft, submitted, received, cancelled
+- **PayableTransaction** - AP ledger (invoice, payment, adjustment); FIFO allocation
+- **Delivery** - Delivery tracking with proof of delivery (photo/signature)
 
 #### Settings & Configuration
 - **Branch** - Store branches for multi-location support
@@ -139,12 +119,78 @@ This is a **pure JSON API backend**. All PDF generation, Excel exports, and UI r
 
 ---
 
+### MPC / Cooperative Finance Models
+
+#### Share Capital
+- **MemberShareAccount** - Member share capital subscription
+  - Belongs to: Customer (member)
+  - Has many: ShareCapitalPayments, ShareCertificates
+  - Fields: uuid, share_type (common|preferred), subscribed_shares, par_value_per_share, paid_up_amount, status
+- **ShareCapitalPayment** - Individual share payments
+- **ShareCertificate** - Issued share certificates
+
+#### Loans & Lending
+- **LoanProduct** - Loan product configuration
+  - Fields: code, name, loan_type, interest_rate, max_term_months, min/max_amount, processing_fee_rate, service_fee, requires_collateral
+- **Loan** - Individual loan records
+  - Belongs to: Customer, LoanProduct
+  - Has many: LoanAmortizationSchedules, LoanPayments, LoanPenalties
+  - Statuses: pending, approved, disbursed, active, paid, rejected, written_off
+- **LoanAmortizationSchedule** - Per-period amortization rows
+- **LoanPayment** - Loan payment records
+- **LoanPenalty** - Penalty charges for overdue amortizations
+
+#### Savings
+- **MemberSavingsAccount** - Member savings accounts
+  - Belongs to: Customer
+  - Has many: SavingsTransactions
+  - Types: voluntary, compulsory
+  - Statuses: active, closed
+- **SavingsTransaction** - Deposits, withdrawals, interest credits, reversals
+
+#### Time Deposits
+- **TimeDeposit** - Time deposit placements
+  - Belongs to: Customer
+  - Has many: TimeDepositTransactions
+  - Statuses: active, matured, pre_terminated, rolled_over
+  - Fields: principal_amount, interest_rate, term_months, placement_date, maturity_date, interest_method, payment_frequency
+- **TimeDepositTransaction** - Accruals, payouts, rollovers, pre-terminations
+
+#### Patronage Refunds
+- **PatronageRefundBatch** - Annual/periodic refund computation batch
+  - Statuses: draft, computed, approved, disbursed
+  - Fields: period_label, period_from/to, computation_method, pr_rate, pr_fund
+- **PatronageRefundAllocation** - Per-member allocation within a batch
+  - Statuses: pending, paid, forfeited
+
+#### Membership
+- **MembershipApplication** - Member enrollment applications
+  - Statuses: pending, approved, rejected
+- **MembershipFee** - Admission, annual, and reinstatement fees
+
+#### CDA Compliance
+- **CdaAnnualReport** - CDA annual report per year
+  - Statuses: draft, finalized, submitted
+- **AgaRecord** - Annual General Assembly meeting records
+  - Types: annual, special; Statuses: draft, finalized
+- **CoopOfficer** - Board of Directors / officers registry
+
+#### Mutual Aid Fund (MAF)
+- **MafProgram** - Benefit program configuration (death, disability, hospitalization, accident)
+- **MafContribution** - Member contribution payments
+- **MafClaim** - Claims filed against a benefit program
+  - Statuses: pending, under_review, approved, rejected, paid
+- **MafClaimPayment** - Disbursement records
+- **MafBeneficiary** - Named beneficiaries per member
+
+---
+
 ## API Endpoints Overview
 
-### Complete API Structure (160+ endpoints)
+### Complete API Structure (250+ endpoints)
 
 #### 1. Authentication (`/auth`)
-- POST `/login` - User authentication (returns Bearer token)
+- POST `/login` - Authenticate user (returns Bearer token)
 - POST `/logout` - Invalidate current token
 - GET `/me` - Get authenticated user
 - PUT `/profile` - Update user profile
@@ -154,26 +200,24 @@ This is a **pure JSON API backend**. All PDF generation, Excel exports, and UI r
 
 #### 2. Products (`/products`)
 - Standard CRUD: GET, POST, PUT, DELETE
-- GET `/search` - Fast search for POS (by name/SKU/barcode)
+- GET `/search` - Fast POS search (name/SKU/barcode)
 - GET `/barcode/{barcode}` - Barcode lookup
 - GET `/low-stock` - Products below reorder point
-- POST `/{uuid}/adjust-stock` - Stock adjustments
+- POST `/{uuid}/adjust-stock` - Stock adjustment
 - GET `/{uuid}/stock-history` - Stock movement history
 - POST `/bulk-update` - Bulk update multiple products
 
 #### 3. Categories (`/categories`)
-- Standard CRUD operations
-- POST `/reorder` - Reorder categories
+- Standard CRUD + POST `/reorder`
 
 #### 4. Units (`/units`)
 - Standard CRUD for units of measure
 
 #### 5. Sales - POS (`/sales`)
 - Standard CRUD with status filters
-- POST `/` - Create sale (main POS transaction)
 - POST `/{uuid}/void` - Void sale
 - POST `/{uuid}/refund` - Full or partial refund
-- GET `/{uuid}/receipt` - Get receipt data (JSON)
+- GET `/{uuid}/receipt` - Receipt data (JSON)
 - POST `/hold` - Hold/pause transaction
 - GET `/held/list` - List held transactions
 - GET `/held/{id}/resume` - Resume held transaction
@@ -183,16 +227,19 @@ This is a **pure JSON API backend**. All PDF generation, Excel exports, and UI r
 #### 6. Customers (`/customers`)
 - Standard CRUD with advanced search
 - GET `/{uuid}/transactions` - Credit transaction history
-- POST `/{uuid}/payments` - Record payment (auto-allocates FIFO)
+- GET `/{uuid}/credit-ledger` - Credit ledger
+- POST `/{uuid}/payments` - Record payment (FIFO allocation)
 - PUT `/{uuid}/credit-limit` - Adjust credit limit
 - GET `/{uuid}/statement` - Customer statement (JSON)
-- GET `/credit/overview` - Credit statistics (AR)
-- GET `/credit/aging` - Aging analysis (4 buckets)
+- GET `/credit/overview` - AR statistics
+- GET `/credit/aging` - 4-bucket aging analysis
 - GET `/credit/overdue` - Overdue accounts
+- GET `/export` - Export customer list
+- POST `/{uuid}/send-reminder` - Send payment reminder
 
 #### 7. Dashboard (`/dashboard`)
 - GET `/summary` - Today's summary stats
-- GET `/sales-trend?days=30` - Sales trend analysis
+- GET `/sales-trend?days=30` - Sales trend
 - GET `/top-products?limit=10` - Top selling products
 - GET `/sales-by-category` - Category breakdown
 - GET `/credit-aging` - Credit aging summary
@@ -200,105 +247,168 @@ This is a **pure JSON API backend**. All PDF generation, Excel exports, and UI r
 - GET `/stock-alerts` - Low stock warnings
 - GET `/upcoming-deliveries` - Delivery schedule
 - GET `/top-customers` - Top customers by sales
-- GET `/comprehensive` - Full dashboard (all data in one call)
+- GET `/comprehensive` - Full dashboard in one call
 
 #### 8. Suppliers (`/suppliers`)
-- Standard CRUD operations
+- Standard CRUD
 - GET `/{uuid}/products` - Supplier's products
 - POST `/{uuid}/products` - Link product to supplier
 - DELETE `/{uuid}/products/{productUuid}` - Unlink product
 - GET `/{uuid}/price-history` - Price history
+- GET/POST `/{uuid}/payables` - AP payable transactions
+- GET `/{uuid}/ledger` - AP ledger (alias)
+- POST `/{uuid}/payments` - Make AP payment (FIFO)
+- GET `/{uuid}/statement` - Supplier AP statement
 
 #### 9. Accounts Payable (`/ap`)
-**Dashboard & Reports:**
-- GET `/overview` - AP statistics and overview
-- GET `/aging` - 4-bucket aging analysis (current, 31-60, 61-90, over-90)
-- GET `/overdue` - Suppliers with overdue invoices
-- GET `/payment-schedule` - Upcoming payments due
+- GET `/overview` - AP statistics
+- GET `/aging` - 4-bucket aging analysis
+- GET `/overdue` - Overdue suppliers
+- GET `/payment-schedule` - Upcoming payments
 - GET `/disbursement-report` - Payments made report
 
-**Supplier-Specific AP:**
-- GET `/suppliers/{uuid}/payables` - Payable transactions (JSON)
-- GET `/suppliers/{uuid}/ledger` - AP ledger (alias)
-- POST `/suppliers/{uuid}/payments` - Make payment (FIFO allocation)
-- GET `/suppliers/{uuid}/statement` - Supplier statement (JSON)
-
-**Features:**
-- Automatic AP invoice creation when PO is received
-- FIFO payment allocation to oldest invoices
-- 4-bucket aging analysis
-- Complete audit trail
-
 #### 10. Purchase Orders (`/purchase-orders`)
-- Standard CRUD with workflow
-- POST `/{uuid}/submit` - Submit for approval
-- POST `/{uuid}/receive` - Receive PO (updates stock automatically, creates AP invoice)
+- Standard CRUD
+- POST `/{uuid}/submit` - Submit PO
+- POST `/{uuid}/receive` - Receive PO (updates stock + creates AP invoice)
 - POST `/{uuid}/cancel` - Cancel PO
+- GET `/{uuid}/pdf` - PO PDF data (JSON)
 
 #### 11. Deliveries (`/deliveries`)
 - GET `/today-schedule` - Today's deliveries
-- Standard CRUD operations
+- Standard CRUD
 - PUT `/{uuid}/status` - Update status
 - POST `/{uuid}/proof` - Upload proof of delivery
 - GET `/{uuid}/proof/download` - Download proof
-- GET `/{uuid}/receipt` - Delivery receipt data (JSON)
+- GET `/{uuid}/receipt` - Delivery receipt (JSON)
+- GET `/{uuid}/receipt/pdf` - Delivery receipt PDF data
 - POST `/{uuid}/assign-driver` - Assign driver
 
 #### 12. Reports (`/reports`)
-
-**Sales Reports:**
-- GET `/sales/daily?date=YYYY-MM-DD`
-- GET `/sales/summary?start_date=&end_date=&group_by=month`
-- GET `/sales/by-category`
-- GET `/sales/by-customer`
-- GET `/sales/by-payment-method`
-- GET `/sales/by-cashier`
-
-**Inventory Reports:**
-- GET `/inventory/valuation`
-- GET `/inventory/movement`
-- GET `/inventory/low-stock`
-- GET `/inventory/dead-stock?days=90`
-- GET `/inventory/profitability`
-
-**Credit Reports:**
-- GET `/credit/aging`
-- GET `/credit/collection`
-
-**Purchase Reports:**
-- GET `/purchases/by-supplier`
-- GET `/purchases/price-comparison`
-
-**Note:** All reports return JSON data. PDF/Excel generation handled by frontend.
+- **Sales**: `/sales/daily`, `/sales/summary`, `/sales/by-category`, `/sales/by-customer`, `/sales/by-payment-method`, `/sales/by-cashier`
+- **Inventory**: `/inventory/valuation`, `/inventory/movement`, `/inventory/low-stock`, `/inventory/dead-stock`, `/inventory/profitability`
+- **Credit**: `/credit/aging`, `/credit/collection`
+- **Purchases**: `/purchases/by-supplier`, `/purchases/price-comparison`
 
 #### 13. Settings (`/settings`)
+- Store profile, logo, users, branches, permissions, payment methods, receipt template, tax, credit defaults, system settings, cache clear
 
-**Store Settings:**
-- GET/PUT `/store` - Store profile
-- POST/DELETE `/store/logo` - Logo management
+---
 
-**User Management:**
-- CRUD `/users`
-- POST `/users/{uuid}/activate`
-- POST `/users/{uuid}/deactivate`
-- POST `/users/{uuid}/reset-password`
+### MPC Cooperative Finance Endpoints
 
-**Branch Management:**
-- CRUD `/branches`
+#### 14. Share Capital (`/share-capital`)
+- GET `/overview` - Share capital module statistics
+- POST `/compute-isc` - Compute Interest on Share Capital (ISC) for a year
+- Standard CRUD for share accounts
+- POST `/{uuid}/payments` - Record share payment
+- GET `/{uuid}/payments` - List payments
+- DELETE `/{uuid}/payments/{payUuid}` - Reverse payment
+- POST `/{uuid}/certificates` - Issue share certificate
+- GET `/{uuid}/certificates` - List certificates
+- DELETE `/{uuid}/certificates/{certUuid}` - Cancel certificate (with reason)
+- GET `/{uuid}/statement` - Account statement (JSON)
+- POST `/{uuid}/withdraw` - Process share capital withdrawal
 
-**Permissions:**
-- GET `/permissions` - All permissions
-- GET/PUT `/permissions/user/{userId}` - User permissions
-- GET/PUT `/permissions/role/{role}` - Role permissions
+#### 15. Loan Products (`/loan-products`)
+- Standard CRUD for loan product configuration
+- Fields: code, name, loan_type, interest_rate, max_term_months, min/max_amount, processing_fee_rate, service_fee, requires_collateral
 
-**Other Settings:**
-- GET/PUT `/payment-methods` - Configure payment options
-- GET/PUT `/receipt-template` - Receipt customization
-- GET `/receipt-template/preview` - Preview receipt
-- GET/PUT `/tax` - Tax configuration (VAT)
-- GET/PUT `/credit` - Default credit settings
-- GET/PUT `/system` - System settings (timezone, currency, format)
-- POST `/system/clear-cache` - Clear cache
+#### 16. Loans (`/loans`)
+- GET `/overview` - Loans module statistics
+- GET `/delinquent` - Delinquent loans list
+- GET `/aging` - Loan aging analysis
+- POST `/amortization/preview` - Preview schedule before applying
+- Standard CRUD for loan applications
+- POST `/{uuid}/approve` - Approve application
+- POST `/{uuid}/reject` - Reject application (with reason)
+- POST `/{uuid}/disburse` - Disburse approved loan
+- POST `/{uuid}/payments` - Record loan payment
+- GET `/{uuid}/payments` - List payments
+- DELETE `/{uuid}/payments/{payUuid}` - Reverse payment
+- GET `/{uuid}/schedule` - Full amortization schedule with status
+- GET `/{uuid}/statement` - Loan statement (JSON)
+- POST `/{uuid}/penalties/compute` - Compute overdue penalties
+- POST `/{uuid}/penalties/{penUuid}/waive` - Waive a penalty
+
+#### 17. Savings (`/savings`)
+- GET `/overview` - Savings module statistics
+- POST `/batch-credit-interest` - Batch credit interest to all active accounts
+- Standard CRUD for savings accounts
+- POST `/{uuid}/deposit` - Record deposit
+- POST `/{uuid}/withdraw` - Record withdrawal
+- GET `/{uuid}/transactions` - List transactions
+- DELETE `/{uuid}/transactions/{txUuid}` - Reverse transaction
+- GET `/{uuid}/statement` - Account statement (JSON)
+- POST `/{uuid}/close` - Close account and disburse balance
+
+#### 18. Time Deposits (`/time-deposits`)
+- GET `/overview` - Time deposit module statistics
+- POST `/interest-preview` - Preview interest before placement
+- Standard CRUD for time deposit placements
+- POST `/{uuid}/accrue` - Accrue interest for a period
+- POST `/{uuid}/mature` - Process maturity payout
+- POST `/{uuid}/pre-terminate` - Pre-terminate (penalty applies)
+- POST `/{uuid}/rollover` - Rollover into new placement
+- GET `/{uuid}/transactions` - List transactions
+- GET `/{uuid}/statement` - Statement (JSON)
+
+#### 19. Patronage Refunds (`/patronage-refunds`)
+- GET `/overview` - Module statistics
+- Standard CRUD for refund batches
+- GET `/{uuid}/summary` - Batch computation summary
+- POST `/{uuid}/compute` - Trigger computation for all eligible members
+- POST `/{uuid}/approve` - Approve the batch
+- GET `/{uuid}/allocations` - List per-member allocations
+- POST `/{uuid}/allocations/{allocUuid}/pay` - Mark allocation as paid
+- POST `/{uuid}/allocations/{allocUuid}/forfeit` - Forfeit unclaimed allocation
+
+#### 20. Memberships (`/memberships`)
+- GET `/overview` - Module statistics
+- GET/POST `/applications` - List / submit membership applications
+- GET `/{uuid}` - Get application
+- POST `/applications/{uuid}/approve` - Approve (records admission fee)
+- POST `/applications/{uuid}/reject` - Reject (with reason)
+- GET `/members` - List members with status filter
+- POST `/members/{uuid}/deactivate` - Deactivate member
+- POST `/members/{uuid}/reinstate` - Reinstate member (records reinstatement fee)
+- POST `/members/{uuid}/expel` - Expel member (with reason)
+- POST `/members/{uuid}/resign` - Process resignation
+- GET/POST `/fees` - List / record membership fees (admission, annual, reinstatement)
+- DELETE `/fees/{uuid}` - Reverse fee
+
+#### 21. CDA Compliance (`/cda`)
+- GET `/overview` - Compliance module overview
+- GET/POST `/reports` - List / compile annual reports from system data
+- GET/PUT `/{uuid}` - Get / update report details
+- POST `/{uuid}/finalize` - Lock report from further edits
+- POST `/{uuid}/mark-submitted` - Mark as submitted to CDA
+- GET `/{uuid}/statistical-data` - Raw data used in the report
+- GET/POST `/aga` - List / create AGA meeting records
+- GET/PUT/DELETE `/aga/{uuid}` - Get / update / delete AGA record
+- POST `/aga/{uuid}/finalize` - Finalize AGA record
+- GET/POST `/officers` - List / add board officers
+- GET/PUT/DELETE `/officers/{uuid}` - Get / update / delete officer
+
+#### 22. MAF – Mutual Aid Fund (`/maf`)
+- GET `/overview` - Fund balance and statistics
+- GET `/claims-report` - Claims report for a date range
+- Standard CRUD for benefit programs (`/maf`, `/maf/{uuid}`)
+- GET/POST `/contributions` - List / record contributions
+- POST `/contributions/{uuid}/reverse` - Reverse a contribution
+- GET/POST `/claims` - List / submit claims
+- GET `/claims/{uuid}` - Get claim details
+- POST `/claims/{uuid}/review` - Move to under-review
+- POST `/claims/{uuid}/approve` - Approve with approved amount
+- POST `/claims/{uuid}/reject` - Reject with reason
+- POST `/claims/{uuid}/pay` - Disburse claim payment
+
+**Member-scoped MAF routes** (`/customers/{uuid}/...`):
+- GET `/maf-contributions` - Member's contributions
+- GET `/maf-claims` - Member's claims
+- GET/POST `/maf-beneficiaries` - List / add beneficiaries
+- PUT `/maf-beneficiaries/{bUuid}` - Update beneficiary
+- POST `/maf-beneficiaries/{bUuid}/deactivate` - Deactivate beneficiary
 
 ---
 
@@ -309,9 +419,7 @@ This is a **pure JSON API backend**. All PDF generation, Excel exports, and UI r
 {
     "success": true,
     "message": "Operation successful",
-    "data": {
-        // Response data
-    }
+    "data": {}
 }
 ```
 
@@ -320,7 +428,7 @@ This is a **pure JSON API backend**. All PDF generation, Excel exports, and UI r
 {
     "success": true,
     "data": {
-        "data": [ /* items */ ],
+        "data": [],
         "pagination": {
             "current_page": 1,
             "per_page": 15,
@@ -365,9 +473,8 @@ This is a **pure JSON API backend**. All PDF generation, Excel exports, and UI r
 - `q` or `search` - Search query
 - `status` - Filter by status
 - `is_active` - Active status (1 or 0)
-- `category_id` - Filter by category
-- `customer_id` - Filter by customer
-- `supplier_id` - Filter by supplier
+- `customer_uuid` - Filter by member/customer
+- `category_id`, `supplier_id` - Domain-specific filters
 
 ### Date Filtering
 - `date` - Single date (YYYY-MM-DD)
@@ -378,12 +485,6 @@ This is a **pure JSON API backend**. All PDF generation, Excel exports, and UI r
 - `sort_by` - Field to sort by
 - `sort_order` - asc or desc
 
-### Reports
-- `days` - Number of days (1-365)
-- `limit` - Number of items (1-50)
-- `group_by` - day, week, month
-- `export` - pdf or excel
-
 ---
 
 ## Business Logic & Workflows
@@ -392,38 +493,58 @@ This is a **pure JSON API backend**. All PDF generation, Excel exports, and UI r
 1. Search/scan product → `GET /products/search` or `GET /products/barcode/{code}`
 2. Build cart (frontend state)
 3. Create sale → `POST /sales` with items array
-4. Auto-deduct stock
-5. Generate receipt → `GET /sales/{uuid}/receipt/pdf`
-6. Optional: Send receipt → `POST /sales/{uuid}/receipt/send`
+4. Auto-deduct stock, create credit transaction if member purchase on credit
+5. Generate receipt → `GET /sales/{uuid}/receipt`
 
-### Credit Sales & Payment
-1. Customer credit sale → `POST /sales` with `customer_id`
+### Loan Lifecycle
+1. Submit application → `POST /loans` (status: pending)
+2. Approve → `POST /loans/{uuid}/approve` (status: approved)
+3. Disburse → `POST /loans/{uuid}/disburse` (status: disbursed → active)
+4. Record monthly payments → `POST /loans/{uuid}/payments`
+5. Compute penalties if overdue → `POST /loans/{uuid}/penalties/compute`
+6. Waive penalties if approved → `POST /loans/{uuid}/penalties/{penUuid}/waive`
+7. Loan paid off → status transitions to **paid**
+
+### Membership Lifecycle
+1. Submit application → `POST /memberships/applications`
+2. Approve (records admission fee) → `POST /memberships/applications/{uuid}/approve`
+3. Member becomes **active** on the Customer record (`member_status = active`)
+4. Open share capital account, savings account, etc.
+5. Status transitions: active → inactive → reinstate → expelled / resigned
+
+### Patronage Refund Workflow
+1. Create batch for a period → `POST /patronage-refunds`
+2. Trigger computation → `POST /{uuid}/compute` (calculates per-member allocation)
+3. Review summary → `GET /{uuid}/summary`
+4. Approve batch → `POST /{uuid}/approve`
+5. Disburse per member → `POST /{uuid}/allocations/{allocUuid}/pay`
+6. Forfeit unclaimed → `POST /{uuid}/allocations/{allocUuid}/forfeit`
+
+### MAF Claim Lifecycle
+1. Submit claim → `POST /maf/claims`
+2. Set to under-review → `POST /claims/{uuid}/review`
+3. Approve with amount → `POST /claims/{uuid}/approve`
+4. Disburse → `POST /claims/{uuid}/pay`
+
+### Credit Sales & Payment (AR)
+1. Member credit sale → `POST /sales` with `customer_uuid`
 2. Creates credit transaction (charge)
 3. Record payment → `POST /customers/{uuid}/payments`
-4. Payment allocation: **FIFO** (oldest invoices first)
-5. Specific allocation: Pass `invoice_ids` array
-6. Update customer balance automatically
+4. Payment allocation: **FIFO** (oldest charges first)
 
-### Credit Aging Buckets
-- **Current**: 0-30 days
-- **31-60 days**: Slightly overdue
-- **61-90 days**: Overdue
-- **Over 90 days**: Severely overdue
-
-### Purchase Order Workflow
+### Purchase Order Workflow (AP)
 1. Create PO → `POST /purchase-orders` (status: draft)
-2. Can edit/delete while draft
-3. Submit → `POST /purchase-orders/{uuid}/submit` (status: submitted)
-4. Receive → `POST /purchase-orders/{uuid}/receive` (status: received)
+2. Submit → `POST /purchase-orders/{uuid}/submit`
+3. Receive → `POST /purchase-orders/{uuid}/receive`
    - Automatically updates product stock
-5. Can cancel at any stage (except received)
+   - Creates AP invoice in `PayableTransaction`
+4. Pay supplier → `POST /suppliers/{uuid}/payments` (FIFO allocation)
 
-### Delivery Workflow
-1. Create delivery → `POST /deliveries`
-2. Assign driver → `POST /deliveries/{uuid}/assign-driver`
-3. Update to in_transit → `PUT /deliveries/{uuid}/status`
-4. Upload proof → `POST /deliveries/{uuid}/proof` (photo/signature)
-5. Mark delivered → `PUT /deliveries/{uuid}/status`
+### Credit / AP Aging Buckets
+- **Current**: 0–30 days
+- **31–60 days**: Slightly overdue
+- **61–90 days**: Overdue
+- **Over 90 days**: Severely overdue
 
 ---
 
@@ -433,8 +554,7 @@ This is a **pure JSON API backend**. All PDF generation, Excel exports, and UI r
 1. User login → `POST /auth/login` with email/password
 2. Receive Bearer token in response
 3. Include in all requests: `Authorization: Bearer {token}`
-4. Token stored in `personal_access_tokens` table (Sanctum)
-5. Logout invalidates token → `POST /auth/logout`
+4. Logout invalidates token → `POST /auth/logout`
 
 ### Permission System
 Role-based access control with granular permissions:
@@ -442,7 +562,7 @@ Role-based access control with granular permissions:
 **Permission Categories:**
 - Products: `view_products`, `create_products`, `edit_products`, `delete_products`
 - Sales: `view_sales`, `create_sales`, `void_sales`, `refund_sales`
-- Customers: `view_customers`, `create_customers`, `edit_customers`, `manage_credit`
+- Customers/Members: `view_customers`, `create_customers`, `edit_customers`, `manage_credit`
 - Inventory: `view_inventory`, `adjust_stock`, `view_stock_history`
 - Reports: `view_reports`, `export_reports`
 - Settings: `manage_settings`, `manage_users`, `manage_permissions`
@@ -450,18 +570,9 @@ Role-based access control with granular permissions:
 **Common Roles:**
 - **admin** - Full system access
 - **manager** - Sales, inventory, reports, user management
-- **cashier** - POS operations only
-- **inventory_clerk** - Stock management
-- **accountant** - Financial reports, credit management
-
-### Middleware Protection
-```php
-// All API routes protected by default
-Route::middleware(['auth:sanctum', 'store.access'])->group(function () {
-    // Additional permission checks via CheckPermission middleware
-    Route::middleware(['permission:view_products'])->get('/products', ...);
-});
-```
+- **cashier** / **teller** - POS and savings/loan payment operations
+- **loan_officer** - Loan processing and management
+- **accountant** - Financial reports, credit management, AP/AR
 
 ---
 
@@ -471,64 +582,57 @@ Route::middleware(['auth:sanctum', 'store.access'])->group(function () {
 ```
 app/
 ├── Http/
-│   ├── Controllers/     # API controllers
-│   ├── Middleware/      # Custom middleware
-│   ├── Requests/        # Form request validation
-│   └── Resources/       # API resource transformers
-├── Models/              # Eloquent models
-├── Services/            # Business logic services
-└── Repositories/        # Data access layer (if used)
+│   ├── Controllers/Api/   # API controllers (one per domain)
+│   ├── Middleware/        # Custom middleware
+│   ├── Requests/          # Form request validation (grouped by domain)
+│   └── Resources/         # API resource transformers
+├── Models/                # Eloquent models
+└── Services/              # Business logic services (one per domain)
 
 routes/
-├── api.php             # API routes (v1)
-└── web.php             # Web routes (minimal)
+└── api.php                # All API routes (v1)
 
 database/
-├── migrations/         # Database migrations
-├── seeders/           # Database seeders
-└── factories/         # Model factories
+└── migrations/            # Timestamped migrations
 ```
 
 ### Naming Conventions
-- **Routes**: Kebab-case (`purchase-orders`, `credit-aging`)
-- **Models**: PascalCase singular (`Product`, `PurchaseOrder`)
-- **Controllers**: PascalCase + Controller (`ProductController`)
-- **Database**: Snake_case (`purchase_orders`, `credit_transactions`)
-- **UUIDs**: Use UUID as primary identifier for all main entities
+- **Routes**: Kebab-case (`share-capital`, `loan-products`, `time-deposits`)
+- **Models**: PascalCase singular (`LoanProduct`, `MemberSavingsAccount`)
+- **Controllers**: PascalCase + Controller (`LoanController`, `MafController`)
+- **Database tables**: Snake_case plural (`member_share_accounts`, `loan_amortization_schedules`)
+- **Primary identifiers**: UUID (`uuid` column) on all main entities
 - **Timestamps**: `created_at`, `updated_at` (Laravel default)
 
 ### Monetary Values
-**Always use centavos (integers) in database and calculations:**
+**Always store and calculate in centavos (integers):**
 
 ```php
-// CORRECT
-$product->retail_price = 35000; // ₱350.00
+// CORRECT — store as centavos
+$loan->principal_amount = 1000000; // ₱10,000.00
 
-// WRONG
-$product->retail_price = 350.00; // Will cause precision issues
+// WRONG — floating point
+$loan->principal_amount = 10000.00;
 
-// Display conversion (in Resource or Accessor)
-public function getRetailPriceInPesosAttribute()
-{
-    return $this->retail_price / 100;
-}
+// API inputs arrive in pesos; convert in Service layer
+$amountCentavos = (int) round($request->amount * 100);
+
+// Display conversion (in Resource)
+'amount' => $this->amount / 100,
 ```
 
 ### Query Optimization
 - Always use eager loading to prevent N+1 queries
 - Index foreign keys and frequently queried columns
-- Use `select()` to limit columns when needed
-- Implement database-level filtering where possible
+- Use `select()` to limit columns when appropriate
 
 ```php
-// Good - Eager loading
-$sales = Sale::with(['items.product', 'customer', 'cashier'])->get();
+// Good
+$loans = Loan::with(['customer', 'loanProduct', 'amortizationSchedules'])->get();
 
-// Bad - N+1 queries
-$sales = Sale::all();
-foreach ($sales as $sale) {
-    $sale->items; // Separate query for each sale
-}
+// Bad — N+1
+$loans = Loan::all();
+foreach ($loans as $loan) { $loan->customer; }
 ```
 
 ---
@@ -536,17 +640,16 @@ foreach ($sales as $sale) {
 ## Testing the API
 
 ### Postman Collection
-A complete Postman collection is available with 150+ endpoints:
+A complete Postman collection is available in the `docs/` directory:
 
 **Files:**
-- `HardwarePOS_API_Collection.postman_collection.json` - Main collection
-- `HardwarePOS_Environment.postman_environment.json` - Environment variables
-- `POSTMAN_COLLECTION_README.md` - Complete documentation
+- `docs/API_Collection.postman_collection.json` - Full collection (22 sections, 250+ requests)
+- `docs/API_Environment.postman_environment.json` - Environment variables
 
 **Quick Start:**
 1. Import both JSON files into Postman
-2. Select "HardwarePOS - Local Development" environment
-3. Run Login request (token auto-saves)
+2. Select "HardwarePOS - Local Development" environment (base_url defaults to `http://localhost`)
+3. Run **Login** request — token auto-saves to collection variable
 4. All endpoints ready to use
 
 ### Manual Testing with cURL
@@ -556,8 +659,8 @@ curl -X POST http://localhost/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -d '{"email":"admin@example.com","password":"password"}'
 
-# Use token in requests
-curl -X GET http://localhost/api/v1/products \
+# Authenticated request
+curl -X GET http://localhost/api/v1/share-capital \
   -H "Authorization: Bearer {your-token}" \
   -H "Accept: application/json"
 ```
@@ -567,33 +670,30 @@ curl -X GET http://localhost/api/v1/products \
 ## Common Development Tasks
 
 ### Adding a New Endpoint
-1. Create/update controller method
+1. Create/update controller method in `app/Http/Controllers/Api/`
 2. Add route in `routes/api.php`
-3. Create form request for validation (if POST/PUT)
+3. Create form request in `app/Http/Requests/{Domain}/` for POST/PUT
 4. Add permission check if needed
-5. Create API resource for response transformation
-6. Update Postman collection
-7. Add tests
+5. Create/update API resource in `app/Http/Resources/`
+6. Add business logic to the relevant Service in `app/Services/`
+7. Update `docs/API_Collection.postman_collection.json`
 
 ### Adding a New Model
-1. Create migration: `php artisan make:migration create_table_name`
-2. Create model: `php artisan make:model ModelName`
-3. Define relationships in model
-4. Add to multi-tenancy scope if store-specific
-5. Create factory and seeder
-6. Run migration: `php artisan migrate`
+1. `php artisan make:migration create_table_name_table`
+2. `php artisan make:model ModelName`
+3. Define fillable, casts, and relationships
+4. Add `store_id` scope if store-specific (multi-tenancy)
+5. Run `php artisan migrate`
 
 ### Debugging
 ```bash
 # View logs
 tail -f storage/logs/laravel.log
 
-# Clear cache
-php artisan cache:clear
-php artisan config:clear
-php artisan route:clear
+# Clear all caches
+php artisan cache:clear && php artisan config:clear && php artisan route:clear
 
-# Run tinker for testing
+# Interactive tinker
 php artisan tinker
 ```
 
@@ -603,7 +703,7 @@ php artisan tinker
 
 ### Required .env Variables
 ```env
-APP_NAME=HardwarePOS
+APP_NAME="CoopStore Management"
 APP_ENV=local
 APP_DEBUG=true
 APP_TIMEZONE=Asia/Manila
@@ -612,18 +712,18 @@ APP_URL=http://localhost
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=hardware_pos
+DB_DATABASE=coop_store_mgnt
 DB_USERNAME=root
 DB_PASSWORD=
 
 SANCTUM_STATEFUL_DOMAINS=localhost,127.0.0.1
 
-# Optional: Email configuration for receipts/reminders
+# Optional: Email
 MAIL_MAILER=smtp
 MAIL_HOST=smtp.mailtrap.io
 MAIL_PORT=2525
 
-# Optional: SMS configuration for reminders
+# Optional: SMS (member reminders)
 SMS_PROVIDER=semaphore
 SMS_API_KEY=your-api-key
 ```
@@ -633,21 +733,19 @@ SMS_API_KEY=your-api-key
 ## Deployment Considerations
 
 ### Production Checklist
-- [ ] Set `APP_ENV=production`
-- [ ] Set `APP_DEBUG=false`
-- [ ] Configure proper database credentials
+- [ ] Set `APP_ENV=production` and `APP_DEBUG=false`
+- [ ] Configure database credentials
 - [ ] Set up SSL certificate
-- [ ] Configure CORS properly
-- [ ] Set up backup strategy
-- [ ] Configure queue workers for jobs
-- [ ] Set up scheduled tasks (reminders, reports)
-- [ ] Enable error logging and monitoring
-- [ ] Optimize autoloader: `composer install --optimize-autoloader --no-dev`
-- [ ] Cache routes and config: `php artisan optimize`
+- [ ] Configure CORS
+- [ ] Set up automated database backups
+- [ ] Configure queue workers (`php artisan queue:work`)
+- [ ] Set up scheduled tasks for batch jobs (interest crediting, penalty computation)
+- [ ] Enable error logging/monitoring
+- [ ] `composer install --optimize-autoloader --no-dev`
+- [ ] `php artisan optimize`
 
 ### Performance Optimization
 ```bash
-# Production optimization
 php artisan config:cache
 php artisan route:cache
 composer dump-autoload --optimize
@@ -657,64 +755,32 @@ composer dump-autoload --optimize
 
 ## Key Features Summary
 
-### Core Functionality
-✅ Complete POS system with sales, refunds, and voids
-✅ Inventory management with stock tracking
-✅ **Accounts Receivable (AR)** - Customer credit with aging & FIFO allocation
-✅ **Accounts Payable (AP)** - Supplier payables with aging & FIFO allocation
-✅ Multi-payment method support (Cash, GCash, Maya, Bank Transfer, Check)
-✅ Purchase order management with automatic AP invoice creation
-✅ Delivery tracking with proof of delivery
-✅ Comprehensive reporting and analytics (JSON data)
-✅ Multi-tenant architecture (store-level isolation)
-✅ Role-based permissions
-✅ Activity logging and audit trail
-✅ Multi-branch support
-✅ **Pure JSON API** - No server-side rendering, all UI in frontend
+### Retail / POS Core
+- Complete POS system (sales, refunds, voids, held transactions)
+- Inventory management with stock tracking and reorder alerts
+- Accounts Receivable (AR) — customer credit with FIFO allocation and aging
+- Accounts Payable (AP) — supplier payables with FIFO allocation and aging
+- Multi-payment method support (Cash, GCash, Maya, Bank Transfer, Check)
+- Purchase order management with automatic AP invoice creation
+- Delivery tracking with proof of delivery
+- Comprehensive reporting and analytics (pure JSON)
+- Multi-tenant architecture (cooperative/store-level isolation)
+- Role-based permissions and activity audit trail
+- Multi-branch support
 
-### Business Features
-✅ AR/AP with FIFO payment allocation
-✅ 4-bucket aging analysis (current, 31-60, 61-90, over-90)
-✅ Customer & supplier statements (JSON)
-✅ Low stock alerts and reorder points
-✅ Sales trends and analytics
-✅ Top products and customers
-✅ Profit analysis
-✅ Dead stock identification
-✅ Supplier price comparison
-✅ Hold/resume POS transactions
+### MPC / Cooperative Finance
+- **Share Capital** — subscriptions, payments, ISC computation, share certificates
+- **Loans** — full lifecycle: application → approval → disbursement → repayment → penalties
+- **Savings** — voluntary/compulsory accounts, batch interest crediting
+- **Time Deposits** — placement, accrual, maturity, pre-termination, rollover
+- **Patronage Refunds** — computation, approval, per-member disbursement/forfeiture
+- **Memberships** — application workflow, status transitions, fee tracking
+- **CDA Compliance** — annual reports, AGA records, officers registry
+- **MAF** — benefit programs, contributions, claim lifecycle (review → approve → pay)
 
 ---
 
-## Integration Points
-
-### Potential Integrations
-- **Payment Gateways**: GCash, Maya, PayMongo for online payments
-- **SMS Gateway**: Semaphore, Twilio for notifications
-- **Email Service**: SendGrid, Mailgun for transactional emails
-- **Cloud Storage**: AWS S3, Cloudinary for images/documents
-- **Barcode Scanner**: Hardware integration via frontend
-- **Receipt Printer**: ESC/POS printer integration
-- **Accounting Software**: Export for QuickBooks, Xero
-
----
-
-## Contact & Support
-
-For questions or issues:
-1. Check Laravel logs: `storage/logs/laravel.log`
-2. Review Postman collection documentation
-3. Check API documentation: `/api/documentation` (if Scramble configured)
-
----
-
-## License
-
-This project is proprietary software. All rights reserved.
-
----
-
-**Last Updated**: February 2024
+**Last Updated**: February 2026
 **Laravel Version**: 11.x
 **PHP Version**: 8.2+
 **API Version**: v1

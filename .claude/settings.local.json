@@ -17,7 +17,13 @@
       "Bash(php:*)",
       "Bash(find:*)",
       "Bash(grep:*)",
-      "Bash(xargs:*)"
+      "Bash(xargs:*)",
+      "Bash(\"C:\\\\Users\\\\252164.JEnrique\\\\.config\\\\herd-lite\\\\bin\\\\composer.bat\" install --no-interaction)",
+      "Bash(\"C:\\\\Users\\\\252164.JEnrique\\\\.config\\\\herd-lite\\\\bin\\\\php.exe\" artisan migrate --force)",
+      "Bash(\"C:\\\\Users\\\\252164.JEnrique\\\\.config\\\\herd-lite\\\\bin\\\\php.exe\" artisan route:list --path=share-capital)",
+      "Bash(\"C:\\\\Users\\\\252164.JEnrique\\\\.config\\\\herd-lite\\\\bin\\\\php.exe\" artisan route:list --path=loans)",
+      "Bash(python3:*)",
+      "Bash(python:*)"
     ]
   }
 }

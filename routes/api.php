@@ -13,6 +13,15 @@ use App\Http\Controllers\Api\PurchaseOrderController;
 use App\Http\Controllers\Api\DeliveryController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\SettingsController;
+use App\Http\Controllers\Api\ShareCapitalController;
+use App\Http\Controllers\Api\LoanProductController;
+use App\Http\Controllers\Api\LoanController;
+use App\Http\Controllers\Api\SavingsController;
+use App\Http\Controllers\Api\TimeDepositController;
+use App\Http\Controllers\Api\PatronageRefundController;
+use App\Http\Controllers\Api\MembershipController;
+use App\Http\Controllers\Api\CdaComplianceController;
+use App\Http\Controllers\Api\MafController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -258,5 +267,209 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'store.access'])->group(functio
         Route::get('/system', [SettingsController::class, 'getSystemSettings']);
         Route::put('/system', [SettingsController::class, 'updateSystemSettings']);
         Route::post('/system/clear-cache', [SettingsController::class, 'clearCache']);
+    });
+
+    // =========================================================================
+    // MPC: Share Capital Module
+    // =========================================================================
+    Route::prefix('share-capital')->group(function () {
+        Route::get('/overview', [ShareCapitalController::class, 'overview']);
+        Route::post('/compute-isc', [ShareCapitalController::class, 'computeISC']);
+        Route::get('/', [ShareCapitalController::class, 'index']);
+        Route::post('/', [ShareCapitalController::class, 'store']);
+        Route::get('/{uuid}', [ShareCapitalController::class, 'show']);
+        Route::put('/{uuid}', [ShareCapitalController::class, 'update']);
+        Route::post('/{uuid}/payments', [ShareCapitalController::class, 'recordPayment']);
+        Route::get('/{uuid}/payments', [ShareCapitalController::class, 'listPayments']);
+        Route::delete('/{uuid}/payments/{payUuid}', [ShareCapitalController::class, 'reversePayment']);
+        Route::post('/{uuid}/certificates', [ShareCapitalController::class, 'issueCertificate']);
+        Route::get('/{uuid}/certificates', [ShareCapitalController::class, 'listCertificates']);
+        Route::delete('/{uuid}/certificates/{certUuid}', [ShareCapitalController::class, 'cancelCertificate']);
+        Route::get('/{uuid}/statement', [ShareCapitalController::class, 'statement']);
+        Route::post('/{uuid}/withdraw', [ShareCapitalController::class, 'withdraw']);
+    });
+
+    // =========================================================================
+    // MPC: Loan Products (configuration)
+    // =========================================================================
+    Route::prefix('loan-products')->group(function () {
+        Route::get('/', [LoanProductController::class, 'index']);
+        Route::post('/', [LoanProductController::class, 'store']);
+        Route::get('/{uuid}', [LoanProductController::class, 'show']);
+        Route::put('/{uuid}', [LoanProductController::class, 'update']);
+        Route::delete('/{uuid}', [LoanProductController::class, 'destroy']);
+    });
+
+    // =========================================================================
+    // MPC: Loans / Lending Module
+    // =========================================================================
+    Route::prefix('loans')->group(function () {
+        // Static sub-routes must appear BEFORE /{uuid} to avoid being caught as uuid values
+        Route::get('/overview', [LoanController::class, 'overview']);
+        Route::get('/delinquent', [LoanController::class, 'delinquent']);
+        Route::get('/aging', [LoanController::class, 'aging']);
+        Route::post('/amortization/preview', [LoanController::class, 'previewAmortization']);
+        Route::get('/', [LoanController::class, 'index']);
+        Route::post('/', [LoanController::class, 'store']);
+        Route::get('/{uuid}', [LoanController::class, 'show']);
+        Route::put('/{uuid}', [LoanController::class, 'update']);
+        Route::post('/{uuid}/approve', [LoanController::class, 'approve']);
+        Route::post('/{uuid}/reject', [LoanController::class, 'reject']);
+        Route::post('/{uuid}/disburse', [LoanController::class, 'disburse']);
+        Route::post('/{uuid}/payments', [LoanController::class, 'recordPayment']);
+        Route::get('/{uuid}/payments', [LoanController::class, 'listPayments']);
+        Route::delete('/{uuid}/payments/{payUuid}', [LoanController::class, 'reversePayment']);
+        Route::get('/{uuid}/schedule', [LoanController::class, 'schedule']);
+        Route::get('/{uuid}/statement', [LoanController::class, 'statement']);
+        Route::post('/{uuid}/penalties/compute', [LoanController::class, 'computePenalties']);
+        Route::post('/{uuid}/penalties/{penUuid}/waive', [LoanController::class, 'waivePenalty']);
+    });
+
+    // =========================================================================
+    // MPC: Member Savings (Voluntary + Compulsory)
+    // =========================================================================
+    Route::prefix('savings')->group(function () {
+        Route::get('/overview', [SavingsController::class, 'overview']);
+        Route::post('/batch-credit-interest', [SavingsController::class, 'batchCreditInterest']);
+        Route::get('/', [SavingsController::class, 'index']);
+        Route::post('/', [SavingsController::class, 'store']);
+        Route::get('/{uuid}', [SavingsController::class, 'show']);
+        Route::put('/{uuid}', [SavingsController::class, 'update']);
+        Route::post('/{uuid}/deposit', [SavingsController::class, 'deposit']);
+        Route::post('/{uuid}/withdraw', [SavingsController::class, 'withdraw']);
+        Route::get('/{uuid}/transactions', [SavingsController::class, 'listTransactions']);
+        Route::delete('/{uuid}/transactions/{txUuid}', [SavingsController::class, 'reverseTransaction']);
+        Route::get('/{uuid}/statement', [SavingsController::class, 'statement']);
+        Route::post('/{uuid}/close', [SavingsController::class, 'close']);
+    });
+
+    // =========================================================================
+    // MPC: Time Deposits
+    // =========================================================================
+    Route::prefix('time-deposits')->group(function () {
+        Route::get('/overview', [TimeDepositController::class, 'overview']);
+        Route::post('/interest-preview', [TimeDepositController::class, 'interestPreview']);
+        Route::get('/', [TimeDepositController::class, 'index']);
+        Route::post('/', [TimeDepositController::class, 'store']);
+        Route::get('/{uuid}', [TimeDepositController::class, 'show']);
+        Route::post('/{uuid}/accrue', [TimeDepositController::class, 'accrueInterest']);
+        Route::post('/{uuid}/mature', [TimeDepositController::class, 'mature']);
+        Route::post('/{uuid}/pre-terminate', [TimeDepositController::class, 'preTerminate']);
+        Route::post('/{uuid}/rollover', [TimeDepositController::class, 'rollOver']);
+        Route::get('/{uuid}/transactions', [TimeDepositController::class, 'listTransactions']);
+        Route::get('/{uuid}/statement', [TimeDepositController::class, 'statement']);
+    });
+
+    // =========================================================================
+    // MPC: Patronage Refund Computation
+    // =========================================================================
+    Route::prefix('patronage-refunds')->group(function () {
+        Route::get('/overview', [PatronageRefundController::class, 'overview']);
+        Route::get('/', [PatronageRefundController::class, 'index']);
+        Route::post('/', [PatronageRefundController::class, 'store']);
+        Route::get('/{uuid}', [PatronageRefundController::class, 'show']);
+        Route::get('/{uuid}/summary', [PatronageRefundController::class, 'summary']);
+        Route::post('/{uuid}/compute', [PatronageRefundController::class, 'compute']);
+        Route::post('/{uuid}/approve', [PatronageRefundController::class, 'approve']);
+        Route::get('/{uuid}/allocations', [PatronageRefundController::class, 'allocations']);
+        Route::post('/{uuid}/allocations/{allocUuid}/pay', [PatronageRefundController::class, 'pay']);
+        Route::post('/{uuid}/allocations/{allocUuid}/forfeit', [PatronageRefundController::class, 'forfeit']);
+    });
+
+    // =========================================================================
+    // MPC: Member Enrollment / Lifecycle
+    // =========================================================================
+    Route::prefix('memberships')->group(function () {
+        Route::get('/overview', [MembershipController::class, 'overview']);
+
+        // Applications
+        Route::get('/applications', [MembershipController::class, 'indexApplications']);
+        Route::post('/applications', [MembershipController::class, 'submitApplication']);
+        Route::get('/applications/{uuid}', [MembershipController::class, 'showApplication']);
+        Route::post('/applications/{uuid}/approve', [MembershipController::class, 'approveApplication']);
+        Route::post('/applications/{uuid}/reject', [MembershipController::class, 'rejectApplication']);
+
+        // Member status transitions
+        Route::get('/members', [MembershipController::class, 'indexMembers']);
+        Route::post('/members/{uuid}/deactivate', [MembershipController::class, 'deactivate']);
+        Route::post('/members/{uuid}/reinstate', [MembershipController::class, 'reinstate']);
+        Route::post('/members/{uuid}/expel', [MembershipController::class, 'expel']);
+        Route::post('/members/{uuid}/resign', [MembershipController::class, 'resign']);
+
+        // Fees
+        Route::get('/fees', [MembershipController::class, 'indexFees']);
+        Route::post('/fees', [MembershipController::class, 'recordFee']);
+        Route::delete('/fees/{uuid}', [MembershipController::class, 'reverseFee']);
+    });
+
+    // =========================================================================
+    // MPC: CDA Compliance Reporting
+    // =========================================================================
+    Route::prefix('cda')->group(function () {
+        Route::get('/overview', [CdaComplianceController::class, 'overview']);
+
+        // Annual Reports
+        Route::get('/reports', [CdaComplianceController::class, 'indexReports']);
+        Route::post('/reports/compile', [CdaComplianceController::class, 'compile']);
+        Route::get('/reports/{uuid}', [CdaComplianceController::class, 'showReport']);
+        Route::put('/reports/{uuid}', [CdaComplianceController::class, 'updateReport']);
+        Route::post('/reports/{uuid}/finalize', [CdaComplianceController::class, 'finalizeReport']);
+        Route::post('/reports/{uuid}/mark-submitted', [CdaComplianceController::class, 'markSubmitted']);
+        Route::get('/reports/{uuid}/statistical-data', [CdaComplianceController::class, 'statisticalData']);
+
+        // Annual General Assembly records
+        Route::get('/aga', [CdaComplianceController::class, 'indexAga']);
+        Route::post('/aga', [CdaComplianceController::class, 'storeAga']);
+        Route::get('/aga/{uuid}', [CdaComplianceController::class, 'showAga']);
+        Route::put('/aga/{uuid}', [CdaComplianceController::class, 'updateAga']);
+        Route::delete('/aga/{uuid}', [CdaComplianceController::class, 'destroyAga']);
+        Route::post('/aga/{uuid}/finalize', [CdaComplianceController::class, 'finalizeAga']);
+
+        // Officers / Board of Directors
+        Route::get('/officers', [CdaComplianceController::class, 'indexOfficers']);
+        Route::post('/officers', [CdaComplianceController::class, 'storeOfficer']);
+        Route::get('/officers/{uuid}', [CdaComplianceController::class, 'showOfficer']);
+        Route::put('/officers/{uuid}', [CdaComplianceController::class, 'updateOfficer']);
+        Route::delete('/officers/{uuid}', [CdaComplianceController::class, 'destroyOfficer']);
+    });
+
+    // =========================================================================
+    // MPC: Mutual Aid Fund (MAF)
+    // =========================================================================
+    Route::prefix('maf')->group(function () {
+        // Fund overview and reporting
+        Route::get('/overview',      [MafController::class, 'fundOverview']);
+        Route::get('/claims-report', [MafController::class, 'claimsReport']);
+
+        // Benefit programs (admin configuration)
+        Route::get('/',         [MafController::class, 'programIndex']);
+        Route::post('/',        [MafController::class, 'programStore']);
+        Route::get('/{uuid}',   [MafController::class, 'programShow']);
+        Route::put('/{uuid}',   [MafController::class, 'programUpdate']);
+        Route::delete('/{uuid}',[MafController::class, 'programDestroy']);
+
+        // Contributions (store-wide listing and recording)
+        Route::get('/contributions',                 [MafController::class, 'contributionIndex']);
+        Route::post('/contributions',                [MafController::class, 'contributionStore']);
+        Route::post('/contributions/{uuid}/reverse', [MafController::class, 'contributionReverse']);
+
+        // Claims lifecycle
+        Route::get('/claims',                  [MafController::class, 'claimIndex']);
+        Route::post('/claims',                 [MafController::class, 'claimStore']);
+        Route::get('/claims/{uuid}',           [MafController::class, 'claimShow']);
+        Route::post('/claims/{uuid}/review',   [MafController::class, 'claimReview']);
+        Route::post('/claims/{uuid}/approve',  [MafController::class, 'claimApprove']);
+        Route::post('/claims/{uuid}/reject',   [MafController::class, 'claimReject']);
+        Route::post('/claims/{uuid}/pay',      [MafController::class, 'claimPay']);
+    });
+
+    // MAF member-scoped routes (nested under /customers/{uuid})
+    Route::prefix('customers/{uuid}')->group(function () {
+        Route::get('/maf-contributions',                          [MafController::class, 'memberContributions']);
+        Route::get('/maf-claims',                                 [MafController::class, 'memberClaims']);
+        Route::get('/maf-beneficiaries',                          [MafController::class, 'beneficiaryIndex']);
+        Route::post('/maf-beneficiaries',                         [MafController::class, 'beneficiaryStore']);
+        Route::put('/maf-beneficiaries/{bUuid}',                  [MafController::class, 'beneficiaryUpdate']);
+        Route::post('/maf-beneficiaries/{bUuid}/deactivate',      [MafController::class, 'beneficiaryDeactivate']);
     });
 });

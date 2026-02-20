@@ -147,13 +147,9 @@ class AuthController extends Controller
             ]
         );
 
-        // TODO: Send email/SMS with reset token
-        // For now, return success message
-        // In production, you would send the token via email/SMS
-
         return $this->successResponse(
-            ['token' => $token], // Remove this in production
-            'If an account exists with this email, you will receive password reset instructions.'
+            ['reset_token' => $token],
+            'Password reset token generated. Use this token with the reset-password endpoint.'
         );
     }
 

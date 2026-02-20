@@ -225,27 +225,37 @@ class SavingsService
             ->where('interest_rate', '>', 0)
             ->get();
 
-        $credited       = 0;
-        $totalInterest  = 0;
-        $errors         = [];
+        $credited      = 0;
+        $totalInterest = 0;
+        $errors        = [];
 
-        foreach ($accounts as $account) {
-            try {
-                $tx = $this->creditInterest($account, $data, $operator);
-                $credited++;
-                $totalInterest += $tx->getRawOriginal('amount');
-            } catch (\Exception $e) {
-                $errors[] = [
-                    'account_number' => $account->account_number,
-                    'error'          => $e->getMessage(),
-                ];
+        DB::transaction(function () use ($accounts, $data, $operator, &$credited, &$totalInterest, &$errors) {
+            foreach ($accounts as $account) {
+                try {
+                    $tx = $this->creditInterest($account, $data, $operator);
+                    $credited++;
+                    $totalInterest += $tx->getRawOriginal('amount');
+                } catch (\Exception $e) {
+                    $errors[] = [
+                        'account_number' => $account->account_number,
+                        'error'          => $e->getMessage(),
+                    ];
+                }
             }
-        }
+
+            if (! empty($errors)) {
+                throw new \RuntimeException(
+                    'Batch interest credit failed for ' . count($errors) . ' account(s). ' .
+                    'All changes have been rolled back. Errors: ' .
+                    implode('; ', array_map(fn($e) => "{$e['account_number']}: {$e['error']}", $errors))
+                );
+            }
+        });
 
         return [
-            'accounts_credited'      => $credited,
+            'accounts_credited'       => $credited,
             'total_interest_credited' => number_format($totalInterest / 100, 2, '.', ''),
-            'errors'                 => $errors,
+            'errors'                  => [],
         ];
     }
 

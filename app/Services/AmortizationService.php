@@ -142,8 +142,11 @@ class AmortizationService
     private function resolvePeriodicRate(float $monthlyRate, int $termMonths, string $interval): array
     {
         return match ($interval) {
-            'weekly'       => [$monthlyRate / 4, $termMonths * 4],
-            'semi_monthly' => [$monthlyRate / 2, $termMonths * 2],
+            // Equivalent periodic rate: (1 + monthlyRate)^(1/periodsPerMonth) - 1
+            // Weekly: ~4.33 weeks per month  →  exponent = 1/4.33
+            'weekly'       => [pow(1 + $monthlyRate, 1 / 4.33) - 1, $termMonths * 4],
+            // Semi-monthly: 2 periods per month  →  exponent = 1/2
+            'semi_monthly' => [pow(1 + $monthlyRate, 1 / 2)    - 1, $termMonths * 2],
             default        => [$monthlyRate, $termMonths],
         };
     }

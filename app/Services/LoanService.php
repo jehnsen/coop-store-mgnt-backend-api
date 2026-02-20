@@ -350,7 +350,7 @@ class LoanService
                 'total_penalty_paid'        => $newTotalPenaltyPaid,
             ];
 
-            if ($newOutstandingBalance === 0) {
+            if ($newOutstandingBalance === 0 && $newPenaltiesOutstanding === 0) {
                 $loanUpdates['status'] = 'closed';
             }
 
@@ -464,6 +464,15 @@ class LoanService
                 $penaltyCentavos = (int) round($overdueDue * $penaltyRate * ($daysOverdue / 30));
 
                 if ($penaltyCentavos <= 0) {
+                    continue;
+                }
+
+                $alreadyExists = LoanPenalty::where('amortization_schedule_id', $schedule->id)
+                    ->where('applied_date', $asOfDate->toDateString())
+                    ->where('is_paid', false)
+                    ->exists();
+
+                if ($alreadyExists) {
                     continue;
                 }
 

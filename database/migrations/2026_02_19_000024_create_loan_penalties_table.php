@@ -32,6 +32,7 @@ return new class extends Migration
             $table->index(['store_id', 'loan_id']);
             $table->index('is_paid');
             $table->index('applied_date');
+            $table->unique(['amortization_schedule_id', 'applied_date'], 'loan_penalties_schedule_date_unique');
         });
     }
 

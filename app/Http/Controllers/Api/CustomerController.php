@@ -16,6 +16,7 @@ use App\Repositories\Contracts\CreditTransactionRepositoryInterface;
 use App\Repositories\Criteria\FilterByColumn;
 use App\Repositories\Criteria\SearchMultipleColumns;
 use App\Services\CreditService;
+use App\Services\SmsService;
 use App\Traits\ApiResponse;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -403,7 +404,7 @@ class CustomerController extends Controller
     public function sendReminder(Request $request, string $uuid): JsonResponse
     {
         $request->validate([
-            'channel' => 'required|in:sms,email,both',
+            'channel' => 'required|in:sms',
             'message' => 'nullable|string|max:500',
         ]);
 
@@ -413,12 +414,41 @@ class CustomerController extends Controller
             return $this->errorResponse('Customer has no outstanding balance', 422);
         }
 
-        // TODO: Implement SMS/Email sending
-        // This is a placeholder for the actual implementation
+        $phone = $customer->mobile ?: $customer->phone;
+        if (empty($phone)) {
+            return $this->errorResponse('Customer has no phone number on file.', 422);
+        }
 
+        $user       = $request->user();
+        $smsMessage = $request->input('message') ?: sprintf(
+            'Dear %s, you have an outstanding balance of PHP %s with %s. Please settle at your earliest convenience.',
+            $customer->name,
+            number_format($customer->getRawOriginal('total_outstanding') / 100, 2),
+            config('app.name')
+        );
 
+        $sms = new SmsService(
+            apiKey:     env('SEMAPHORE_API_KEY', ''),
+            senderName: env('SEMAPHORE_SENDER_NAME', 'COOP')
+        );
 
-        return $this->successResponse(null, 'Reminder sent successfully');
+        $log = $sms->send(
+            storeId:        $user->store_id,
+            userId:         $user->id,
+            recipientPhone: $phone,
+            recipientName:  $customer->name,
+            message:        $smsMessage,
+            type:           'payment_reminder'
+        );
+
+        if ($log->status !== 'sent') {
+            return $this->errorResponse('SMS could not be sent: ' . ($log->error_message ?? 'provider error'), 500);
+        }
+
+        return $this->successResponse([
+            'provider_message_id' => $log->provider_message_id,
+            'credits_used'        => $log->credits_used,
+        ], 'SMS reminder sent successfully.');
     }
 
     /**

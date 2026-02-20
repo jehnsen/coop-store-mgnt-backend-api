@@ -49,11 +49,7 @@ class ShareCapitalService
                 'notes'                   => $data['notes'] ?? null,
             ]);
 
-            activity()
-                ->performedOn($account)
-                ->causedBy(auth()->user())
-                ->withProperties(['customer_id' => $customer->id, 'subscribed_shares' => $subscribedShares])
-                ->log('share_account_opened');
+
 
             return $account;
         });
@@ -111,11 +107,7 @@ class ShareCapitalService
             $account->timestamps = true;
             $account->refresh();
 
-            activity()
-                ->performedOn($payment)
-                ->causedBy($operator)
-                ->withProperties(['amount_centavos' => $amountCentavos, 'balance_after' => $balanceAfter])
-                ->log('share_payment_recorded');
+
 
             return $payment;
         });
@@ -153,11 +145,7 @@ class ShareCapitalService
                 ->where('id', $account->id)
                 ->update(['total_paid_up_amount' => $newPaidCentavos]);
 
-            activity()
-                ->performedOn($payment)
-                ->causedBy($operator)
-                ->withProperties(['reversed_amount_centavos' => $amountCentavos])
-                ->log('share_payment_reversed');
+
 
             return $payment->fresh();
         });
@@ -202,11 +190,7 @@ class ShareCapitalService
                 'status'           => 'active',
             ]);
 
-            activity()
-                ->performedOn($certificate)
-                ->causedBy($operator)
-                ->withProperties(['shares_covered' => $sharesCovered, 'face_value_centavos' => $faceValueCentavos])
-                ->log('share_certificate_issued');
+
 
             return $certificate;
         });
@@ -228,11 +212,7 @@ class ShareCapitalService
             'cancellation_reason'  => $reason,
         ]);
 
-        activity()
-            ->performedOn($certificate)
-            ->causedBy($operator)
-            ->withProperties(['reason' => $reason])
-            ->log('share_certificate_cancelled');
+
 
         return $certificate->fresh();
     }
@@ -264,10 +244,7 @@ class ShareCapitalService
                 'notes'          => $data['notes'] ?? $account->notes,
             ]);
 
-            activity()
-                ->performedOn($account)
-                ->causedBy($operator)
-                ->log('share_account_withdrawn');
+
 
             return $account->fresh();
         });

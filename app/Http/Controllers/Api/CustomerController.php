@@ -136,10 +136,7 @@ class CustomerController extends Controller
             DB::commit();
 
             // Log activity
-            activity()
-                ->performedOn($customer)
-                ->causedBy(auth()->user())
-                ->log('Customer created');
+
 
             return $this->successResponse(
                 new CustomerResource($customer),
@@ -206,10 +203,7 @@ class CustomerController extends Controller
             DB::commit();
 
             // Log activity
-            activity()
-                ->performedOn($customer)
-                ->causedBy(auth()->user())
-                ->log('Customer updated');
+
 
             return $this->successResponse(
                 new CustomerResource($customer->fresh()),
@@ -241,10 +235,7 @@ class CustomerController extends Controller
             $customer->delete();
 
             // Log activity
-            activity()
-                ->performedOn($customer)
-                ->causedBy(auth()->user())
-                ->log('Customer deleted');
+
 
             return $this->successResponse(null, 'Customer deleted successfully');
         } catch (\Exception $e) {
@@ -425,15 +416,7 @@ class CustomerController extends Controller
         // TODO: Implement SMS/Email sending
         // This is a placeholder for the actual implementation
 
-        // Log activity
-        activity()
-            ->performedOn($customer)
-            ->causedBy(auth()->user())
-            ->withProperties([
-                'channel' => $request->input('channel'),
-                'outstanding_balance' => $customer->total_outstanding,
-            ])
-            ->log('Payment reminder sent to customer');
+
 
         return $this->successResponse(null, 'Reminder sent successfully');
     }

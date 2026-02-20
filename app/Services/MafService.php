@@ -52,11 +52,7 @@ class MafService
             'is_active'           => $data['is_active'] ?? true,
         ]);
 
-        activity()
-            ->performedOn($program)
-            ->causedBy(auth()->user())
-            ->withProperties(['program_code' => $program->code])
-            ->log('MAF program created');
+
 
         return $program->fresh();
     }
@@ -79,10 +75,7 @@ class MafService
 
         $program->update($fillable);
 
-        activity()
-            ->performedOn($program)
-            ->causedBy(auth()->user())
-            ->log('MAF program updated');
+
 
         return $program->fresh();
     }
@@ -119,11 +112,7 @@ class MafService
                 'notes'          => $data['notes'] ?? null,
             ]);
 
-            activity()
-                ->performedOn($customer)
-                ->causedBy(auth()->user())
-                ->withProperties(['beneficiary_name' => $beneficiary->name])
-                ->log('MAF beneficiary registered');
+
 
             return $beneficiary;
         });
@@ -163,11 +152,7 @@ class MafService
     {
         $beneficiary->update(['is_active' => false, 'is_primary' => false]);
 
-        activity()
-            ->performedOn($beneficiary->customer)
-            ->causedBy(auth()->user())
-            ->withProperties(['beneficiary_name' => $beneficiary->name])
-            ->log('MAF beneficiary deactivated');
+
 
         return $beneficiary->fresh();
     }
@@ -203,14 +188,7 @@ class MafService
             'is_reversed'       => false,
         ]);
 
-        activity()
-            ->performedOn($customer)
-            ->causedBy(auth()->user())
-            ->withProperties([
-                'contribution_number' => $contribution->contribution_number,
-                'amount'              => $data['amount'],
-            ])
-            ->log('MAF contribution recorded');
+
 
         return $contribution->load(['customer', 'user']);
     }
@@ -236,14 +214,7 @@ class MafService
             'reversal_reason' => $reason,
         ]);
 
-        activity()
-            ->performedOn($contribution->customer)
-            ->causedBy(auth()->user())
-            ->withProperties([
-                'contribution_number' => $contribution->contribution_number,
-                'reason'              => $reason,
-            ])
-            ->log('MAF contribution reversed');
+
 
         return $contribution->fresh(['customer', 'user', 'reversedByUser']);
     }
@@ -344,14 +315,7 @@ class MafService
             'notes'                => $data['notes'] ?? null,
         ]);
 
-        activity()
-            ->performedOn($customer)
-            ->causedBy(auth()->user())
-            ->withProperties([
-                'claim_number' => $claim->claim_number,
-                'program'      => $program->name,
-            ])
-            ->log('MAF claim filed');
+
 
         return $claim->load(['customer', 'mafProgram', 'beneficiary']);
     }
@@ -375,11 +339,7 @@ class MafService
             'reviewed_at' => now(),
         ]);
 
-        activity()
-            ->performedOn($claim->customer)
-            ->causedBy($reviewer)
-            ->withProperties(['claim_number' => $claim->claim_number])
-            ->log('MAF claim put under review');
+
 
         return $claim->fresh(['customer', 'mafProgram', 'beneficiary', 'reviewedBy']);
     }
@@ -418,14 +378,7 @@ class MafService
             'approved_at'     => now(),
         ]);
 
-        activity()
-            ->performedOn($claim->customer)
-            ->causedBy($approver)
-            ->withProperties([
-                'claim_number'    => $claim->claim_number,
-                'approved_amount' => $approvedCentavos / 100,
-            ])
-            ->log('MAF claim approved');
+
 
         return $claim->fresh(['customer', 'mafProgram', 'beneficiary', 'approvedBy']);
     }
@@ -450,14 +403,7 @@ class MafService
             'rejected_at'      => now(),
         ]);
 
-        activity()
-            ->performedOn($claim->customer)
-            ->causedBy($rejector)
-            ->withProperties([
-                'claim_number' => $claim->claim_number,
-                'reason'       => $reason,
-            ])
-            ->log('MAF claim rejected');
+
 
         return $claim->fresh(['customer', 'mafProgram', 'beneficiary', 'rejectedBy']);
     }
@@ -500,15 +446,7 @@ class MafService
                 'paid_at' => now(),
             ]);
 
-            activity()
-                ->performedOn($claim->customer)
-                ->causedBy(auth()->user())
-                ->withProperties([
-                    'claim_number'   => $claim->claim_number,
-                    'payment_number' => $payment->payment_number,
-                    'amount'         => $approvedCentavos / 100,
-                ])
-                ->log('MAF claim payment disbursed');
+
 
             return $payment->load(['claim', 'customer', 'user']);
         });

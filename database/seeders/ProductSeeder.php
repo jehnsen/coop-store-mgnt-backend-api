@@ -18,799 +18,973 @@ class ProductSeeder extends Seeder
     {
         $store = Store::first();
 
-        // Get categories
-        $cementCategory = Category::where('slug', 'cement-concrete')->first();
-        $steelCategory = Category::where('slug', 'steel-rebar')->first();
-        $lumberCategory = Category::where('slug', 'lumber-wood')->first();
-        $paintCategory = Category::where('slug', 'paint-coatings')->first();
-        $plumbingCategory = Category::where('slug', 'plumbing')->first();
-        $electricalCategory = Category::where('slug', 'electrical')->first();
-        $toolsCategory = Category::where('slug', 'tools-equipment')->first();
-        $nailsCategory = Category::where('slug', 'nails-fasteners')->first();
-        $roofingCategory = Category::where('slug', 'roofing-ceiling')->first();
-        $sandCategory = Category::where('slug', 'sand-gravel')->first();
-        $blocksCategory = Category::where('slug', 'hollow-blocks-masonry')->first();
-        $glassCategory = Category::where('slug', 'glass-mirrors')->first();
-        $tilesCategory = Category::where('slug', 'tiles-flooring')->first();
-        $safetyCategory = Category::where('slug', 'safety-gear')->first();
-        $generalCategory = Category::where('slug', 'general-hardware')->first();
+        // ── Categories ────────────────────────────────────────────────────────
+        $catSeeds       = Category::where('slug', 'seeds-planting-materials')->first();
+        $catFert        = Category::where('slug', 'fertilizers')->first();
+        $catPest        = Category::where('slug', 'pesticides-herbicides')->first();
+        $catTools       = Category::where('slug', 'farm-tools-equipment')->first();
+        $catFeeds       = Category::where('slug', 'animal-feeds-veterinary')->first();
+        $catFishing     = Category::where('slug', 'fishing-supplies')->first();
+        $catPacking     = Category::where('slug', 'farm-packaging-storage')->first();
+        $catRice        = Category::where('slug', 'rice-grains')->first();
+        $catCooking     = Category::where('slug', 'cooking-essentials')->first();
+        $catCanned      = Category::where('slug', 'canned-processed-goods')->first();
+        $catBev         = Category::where('slug', 'beverages')->first();
+        $catHygiene     = Category::where('slug', 'personal-care-hygiene')->first();
+        $catBaby        = Category::where('slug', 'baby-infant-needs')->first();
+        $catSnacks      = Category::where('slug', 'snacks-confectionery')->first();
+        $catGeneral     = Category::where('slug', 'general-merchandise')->first();
 
-        // Get units
-        $pcs = UnitOfMeasure::where('abbreviation', 'pcs')->first();
-        $bag = UnitOfMeasure::where('abbreviation', 'bag')->first();
-        $sack = UnitOfMeasure::where('abbreviation', 'sack')->first();
-        $kg = UnitOfMeasure::where('abbreviation', 'kg')->first();
-        $meter = UnitOfMeasure::where('abbreviation', 'm')->first();
-        $foot = UnitOfMeasure::where('abbreviation', 'ft')->first();
-        $gallon = UnitOfMeasure::where('abbreviation', 'gal')->first();
-        $liter = UnitOfMeasure::where('abbreviation', 'L')->first();
-        $roll = UnitOfMeasure::where('abbreviation', 'roll')->first();
-        $box = UnitOfMeasure::where('abbreviation', 'box')->first();
-        $bundle = UnitOfMeasure::where('abbreviation', 'bundle')->first();
-        $length = UnitOfMeasure::where('abbreviation', 'length')->first();
-        $sheet = UnitOfMeasure::where('abbreviation', 'sheet')->first();
-        $sqm = UnitOfMeasure::where('abbreviation', 'sq.m')->first();
-        $cum = UnitOfMeasure::where('abbreviation', 'cu.m')->first();
+        // ── Units ─────────────────────────────────────────────────────────────
+        $kg      = UnitOfMeasure::where('abbreviation', 'kg')->first();
+        $g       = UnitOfMeasure::where('abbreviation', 'g')->first();
+        $sack    = UnitOfMeasure::where('abbreviation', 'sack')->first();
+        $bag     = UnitOfMeasure::where('abbreviation', 'bag')->first();
+        $liter   = UnitOfMeasure::where('abbreviation', 'L')->first();
+        $mL      = UnitOfMeasure::where('abbreviation', 'mL')->first();
+        $gallon  = UnitOfMeasure::where('abbreviation', 'gal')->first();
+        $pcs     = UnitOfMeasure::where('abbreviation', 'pcs')->first();
+        $pack    = UnitOfMeasure::where('abbreviation', 'pack')->first();
+        $box     = UnitOfMeasure::where('abbreviation', 'box')->first();
+        $bundle  = UnitOfMeasure::where('abbreviation', 'bundle')->first();
+        $roll    = UnitOfMeasure::where('abbreviation', 'roll')->first();
+        $doz     = UnitOfMeasure::where('abbreviation', 'doz')->first();
+        $set     = UnitOfMeasure::where('abbreviation', 'set')->first();
+        $meter   = UnitOfMeasure::where('abbreviation', 'm')->first();
+        $can     = UnitOfMeasure::where('abbreviation', 'can')->first();
+        $tab     = UnitOfMeasure::where('abbreviation', 'tab')->first();
+        $amp     = UnitOfMeasure::where('abbreviation', 'amp')->first();
+        $sachet  = UnitOfMeasure::where('abbreviation', 'sachet')->first();
 
+        // ── Products ──────────────────────────────────────────────────────────
+        // cost_price / retail_price in CENTAVOS
+        // wholesale_price ≈ 95% of retail; contractor_price retained for member price (~90%)
         $products = [
-            // CEMENT & CONCRETE (3 products)
+
+            // ═══════════════════════════════════════════
+            // SEEDS & PLANTING MATERIALS
+            // ═══════════════════════════════════════════
             [
-                'category_id' => $cementCategory->id,
-                'unit_id' => $bag->id,
-                'name' => 'Holcim Portland Cement',
-                'brand' => 'Holcim',
-                'size' => '40kg',
-                'cost_price' => 23800, // ₱238 (85% of retail)
-                'retail_price' => 28000, // ₱280
-                'wholesale_price' => 26600, // ₱266 (95%)
-                'contractor_price' => 25200, // ₱252 (90%)
-                'current_stock' => 2500,
-                'reorder_point' => 500,
-                'minimum_order_qty' => 50,
+                'category_id'        => $catSeeds->id,
+                'unit_id'            => $kg->id,
+                'name'               => 'NSIC Rc 222 Certified Inbred Rice Seed',
+                'brand'              => 'PhilRice',
+                'size'               => '1 kg',
+                'cost_price'         => 7600,   // ₱76
+                'retail_price'       => 9500,   // ₱95
+                'wholesale_price'    => 9025,   // ₱90.25
+                'contractor_price'   => 8550,   // ₱85.50 (member price)
+                'current_stock'      => 850,
+                'reorder_point'      => 200,
+                'minimum_order_qty'  => 50,
             ],
             [
-                'category_id' => $cementCategory->id,
-                'unit_id' => $bag->id,
-                'name' => 'Eagle Portland Cement',
-                'brand' => 'Eagle',
-                'size' => '40kg',
-                'cost_price' => 22525, // ₱225.25 (85%)
-                'retail_price' => 26500, // ₱265
-                'wholesale_price' => 25175, // ₱251.75 (95%)
-                'contractor_price' => 23850, // ₱238.50 (90%)
-                'current_stock' => 3200,
-                'reorder_point' => 600,
-                'minimum_order_qty' => 50,
+                'category_id'        => $catSeeds->id,
+                'unit_id'            => $kg->id,
+                'name'               => 'Mestizo 1 (MS1) Hybrid Rice Seed',
+                'brand'              => 'SL Agritech',
+                'size'               => '1 kg',
+                'cost_price'         => 21000,  // ₱210
+                'retail_price'       => 26000,  // ₱260
+                'wholesale_price'    => 24700,  // ₱247
+                'contractor_price'   => 23400,  // ₱234
+                'current_stock'      => 420,
+                'reorder_point'      => 100,
+                'minimum_order_qty'  => 10,
             ],
             [
-                'category_id' => $cementCategory->id,
-                'unit_id' => $bag->id,
-                'name' => 'Republic Portland Cement',
-                'brand' => 'Republic',
-                'size' => '40kg',
-                'cost_price' => 22950, // ₱229.50 (85%)
-                'retail_price' => 27000, // ₱270
-                'wholesale_price' => 25650, // ₱256.50 (95%)
-                'contractor_price' => 24300, // ₱243 (90%)
-                'current_stock' => 2800,
-                'reorder_point' => 550,
-                'minimum_order_qty' => 50,
+                'category_id'        => $catSeeds->id,
+                'unit_id'            => $kg->id,
+                'name'               => 'Open-Pollinated Corn Seed (Yellow)',
+                'brand'              => 'DA-BPI',
+                'size'               => '1 kg',
+                'cost_price'         => 9200,   // ₱92
+                'retail_price'       => 11500,  // ₱115
+                'wholesale_price'    => 10925,  // ₱109.25
+                'contractor_price'   => 10350,  // ₱103.50
+                'current_stock'      => 380,
+                'reorder_point'      => 80,
+                'minimum_order_qty'  => 20,
+            ],
+            [
+                'category_id'        => $catSeeds->id,
+                'unit_id'            => $pack->id,
+                'name'               => 'Pechay (Bok Choy) Vegetable Seeds',
+                'brand'              => 'East-West Seed',
+                'size'               => '10g pack',
+                'cost_price'         => 3600,   // ₱36
+                'retail_price'       => 4500,   // ₱45
+                'wholesale_price'    => 4275,   // ₱42.75
+                'contractor_price'   => 4050,   // ₱40.50
+                'current_stock'      => 240,
+                'reorder_point'      => 50,
+                'minimum_order_qty'  => 20,
+            ],
+            [
+                'category_id'        => $catSeeds->id,
+                'unit_id'            => $pack->id,
+                'name'               => 'Ampalaya (Bitter Gourd) Seeds',
+                'brand'              => 'East-West Seed',
+                'size'               => '5g pack',
+                'cost_price'         => 4800,   // ₱48
+                'retail_price'       => 6000,   // ₱60
+                'wholesale_price'    => 5700,   // ₱57
+                'contractor_price'   => 5400,   // ₱54
+                'current_stock'      => 180,
+                'reorder_point'      => 40,
+                'minimum_order_qty'  => 20,
             ],
 
-            // STEEL & REBAR (6 products)
+            // ═══════════════════════════════════════════
+            // FERTILIZERS
+            // ═══════════════════════════════════════════
             [
-                'category_id' => $steelCategory->id,
-                'unit_id' => $length->id,
-                'name' => 'Deformed Bar 10mm x 6m',
-                'brand' => 'SteelAsia',
-                'size' => '10mm x 6m',
-                'cost_price' => 15725, // ₱157.25 (85%)
-                'retail_price' => 18500, // ₱185
-                'wholesale_price' => 17575, // ₱175.75 (95%)
-                'contractor_price' => 16650, // ₱166.50 (90%)
-                'current_stock' => 850,
-                'reorder_point' => 150,
-                'minimum_order_qty' => 50,
+                'category_id'        => $catFert->id,
+                'unit_id'            => $sack->id,
+                'name'               => 'Urea (46-0-0) Fertilizer',
+                'brand'              => 'Fertiphil',
+                'size'               => '50 kg sack',
+                'cost_price'         => 148000, // ₱1,480
+                'retail_price'       => 175000, // ₱1,750
+                'wholesale_price'    => 166250, // ₱1,662.50
+                'contractor_price'   => 157500, // ₱1,575
+                'current_stock'      => 320,
+                'reorder_point'      => 60,
+                'minimum_order_qty'  => 10,
             ],
             [
-                'category_id' => $steelCategory->id,
-                'unit_id' => $length->id,
-                'name' => 'Deformed Bar 12mm x 6m',
-                'brand' => 'SteelAsia',
-                'size' => '12mm x 6m',
-                'cost_price' => 22525, // ₱225.25 (85%)
-                'retail_price' => 26500, // ₱265
-                'wholesale_price' => 25175, // ₱251.75 (95%)
-                'contractor_price' => 23850, // ₱238.50 (90%)
-                'current_stock' => 720,
-                'reorder_point' => 120,
-                'minimum_order_qty' => 30,
+                'category_id'        => $catFert->id,
+                'unit_id'            => $sack->id,
+                'name'               => 'Complete Fertilizer (14-14-14)',
+                'brand'              => 'Fertiphil',
+                'size'               => '50 kg sack',
+                'cost_price'         => 168000, // ₱1,680
+                'retail_price'       => 198000, // ₱1,980
+                'wholesale_price'    => 188100, // ₱1,881
+                'contractor_price'   => 178200, // ₱1,782
+                'current_stock'      => 280,
+                'reorder_point'      => 50,
+                'minimum_order_qty'  => 10,
             ],
             [
-                'category_id' => $steelCategory->id,
-                'unit_id' => $length->id,
-                'name' => 'Deformed Bar 16mm x 6m',
-                'brand' => 'SteelAsia',
-                'size' => '16mm x 6m',
-                'cost_price' => 39950, // ₱399.50 (85%)
-                'retail_price' => 47000, // ₱470
-                'wholesale_price' => 44650, // ₱446.50 (95%)
-                'contractor_price' => 42300, // ₱423 (90%)
-                'current_stock' => 480,
-                'reorder_point' => 80,
-                'minimum_order_qty' => 20,
+                'category_id'        => $catFert->id,
+                'unit_id'            => $sack->id,
+                'name'               => 'Ammonium Sulfate (21-0-0)',
+                'brand'              => 'Fertiphil',
+                'size'               => '50 kg sack',
+                'cost_price'         => 108000, // ₱1,080
+                'retail_price'       => 127000, // ₱1,270
+                'wholesale_price'    => 120650, // ₱1,206.50
+                'contractor_price'   => 114300, // ₱1,143
+                'current_stock'      => 220,
+                'reorder_point'      => 40,
+                'minimum_order_qty'  => 10,
             ],
             [
-                'category_id' => $steelCategory->id,
-                'unit_id' => $length->id,
-                'name' => 'Deformed Bar 20mm x 6m',
-                'brand' => 'SteelAsia',
-                'size' => '20mm x 6m',
-                'cost_price' => 62050, // ₱620.50 (85%)
-                'retail_price' => 73000, // ₱730
-                'wholesale_price' => 69350, // ₱693.50 (95%)
-                'contractor_price' => 65700, // ₱657 (90%)
-                'current_stock' => 320,
-                'reorder_point' => 60,
-                'minimum_order_qty' => 15,
+                'category_id'        => $catFert->id,
+                'unit_id'            => $liter->id,
+                'name'               => 'Foliar Fertilizer (Bayfolan)',
+                'brand'              => 'Bayer CropScience',
+                'size'               => '1 L',
+                'cost_price'         => 34000,  // ₱340
+                'retail_price'       => 42500,  // ₱425
+                'wholesale_price'    => 40375,  // ₱403.75
+                'contractor_price'   => 38250,  // ₱382.50
+                'current_stock'      => 145,
+                'reorder_point'      => 30,
+                'minimum_order_qty'  => 6,
             ],
             [
-                'category_id' => $steelCategory->id,
-                'unit_id' => $kg->id,
-                'name' => 'Steel Plate 3mm Thickness',
-                'brand' => 'SteelAsia',
-                'size' => '3mm',
-                'material' => 'Steel',
-                'cost_price' => 5950, // ₱59.50 (85%)
-                'retail_price' => 7000, // ₱70
-                'wholesale_price' => 6650, // ₱66.50 (95%)
-                'contractor_price' => 6300, // ₱63 (90%)
-                'current_stock' => 1500,
-                'reorder_point' => 300,
-                'minimum_order_qty' => 50,
-            ],
-            [
-                'category_id' => $steelCategory->id,
-                'unit_id' => $length->id,
-                'name' => 'Angle Bar 1" x 1" x 6m',
-                'brand' => 'SteelAsia',
-                'size' => '1" x 1" x 6m',
-                'cost_price' => 21250, // ₱212.50 (85%)
-                'retail_price' => 25000, // ₱250
-                'wholesale_price' => 23750, // ₱237.50 (95%)
-                'contractor_price' => 22500, // ₱225 (90%)
-                'current_stock' => 280,
-                'reorder_point' => 50,
-                'minimum_order_qty' => 20,
+                'category_id'        => $catFert->id,
+                'unit_id'            => $sack->id,
+                'name'               => 'Organic Compost (Vermicast)',
+                'brand'              => 'Local Organic',
+                'size'               => '30 kg sack',
+                'cost_price'         => 24000,  // ₱240
+                'retail_price'       => 30000,  // ₱300
+                'wholesale_price'    => 28500,  // ₱285
+                'contractor_price'   => 27000,  // ₱270
+                'current_stock'      => 180,
+                'reorder_point'      => 30,
+                'minimum_order_qty'  => 5,
             ],
 
-            // LUMBER & WOOD (7 products)
+            // ═══════════════════════════════════════════
+            // PESTICIDES & HERBICIDES
+            // ═══════════════════════════════════════════
             [
-                'category_id' => $lumberCategory->id,
-                'unit_id' => $pcs->id,
-                'name' => 'Yakal Lumber 2x3x10',
-                'brand' => null,
-                'size' => '2" x 3" x 10ft',
-                'material' => 'Yakal',
-                'cost_price' => 14025, // ₱140.25 (85%)
-                'retail_price' => 16500, // ₱165
-                'wholesale_price' => 15675, // ₱156.75 (95%)
-                'contractor_price' => 14850, // ₱148.50 (90%)
-                'current_stock' => 450,
-                'reorder_point' => 80,
-                'minimum_order_qty' => 20,
+                'category_id'        => $catPest->id,
+                'unit_id'            => $liter->id,
+                'name'               => 'Butachlor 60% EC (Machete) Herbicide',
+                'brand'              => 'Bayer CropScience',
+                'size'               => '1 L',
+                'cost_price'         => 54000,  // ₱540
+                'retail_price'       => 67500,  // ₱675
+                'wholesale_price'    => 64125,  // ₱641.25
+                'contractor_price'   => 60750,  // ₱607.50
+                'current_stock'      => 110,
+                'reorder_point'      => 25,
+                'minimum_order_qty'  => 6,
             ],
             [
-                'category_id' => $lumberCategory->id,
-                'unit_id' => $pcs->id,
-                'name' => 'Yakal Lumber 2x4x10',
-                'brand' => null,
-                'size' => '2" x 4" x 10ft',
-                'material' => 'Yakal',
-                'cost_price' => 18700, // ₱187 (85%)
-                'retail_price' => 22000, // ₱220
-                'wholesale_price' => 20900, // ₱209 (95%)
-                'contractor_price' => 19800, // ₱198 (90%)
-                'current_stock' => 380,
-                'reorder_point' => 70,
-                'minimum_order_qty' => 20,
+                'category_id'        => $catPest->id,
+                'unit_id'            => $liter->id,
+                'name'               => 'Glyphosate 480 g/L (Roundup) Herbicide',
+                'brand'              => 'Monsanto',
+                'size'               => '1 L',
+                'cost_price'         => 28000,  // ₱280
+                'retail_price'       => 35000,  // ₱350
+                'wholesale_price'    => 33250,  // ₱332.50
+                'contractor_price'   => 31500,  // ₱315
+                'current_stock'      => 140,
+                'reorder_point'      => 30,
+                'minimum_order_qty'  => 6,
             ],
             [
-                'category_id' => $lumberCategory->id,
-                'unit_id' => $pcs->id,
-                'name' => 'Coconut Lumber 2x2x8',
-                'brand' => null,
-                'size' => '2" x 2" x 8ft',
-                'material' => 'Coconut Wood',
-                'cost_price' => 5100, // ₱51 (85%)
-                'retail_price' => 6000, // ₱60
-                'wholesale_price' => 5700, // ₱57 (95%)
-                'contractor_price' => 5400, // ₱54 (90%)
-                'current_stock' => 680,
-                'reorder_point' => 120,
-                'minimum_order_qty' => 50,
+                'category_id'        => $catPest->id,
+                'unit_id'            => $liter->id,
+                'name'               => 'Cypermethrin 5% EC Insecticide',
+                'brand'              => 'FMC',
+                'size'               => '500 mL',
+                'cost_price'         => 19600,  // ₱196
+                'retail_price'       => 24500,  // ₱245
+                'wholesale_price'    => 23275,  // ₱232.75
+                'contractor_price'   => 22050,  // ₱220.50
+                'current_stock'      => 130,
+                'reorder_point'      => 25,
+                'minimum_order_qty'  => 6,
             ],
             [
-                'category_id' => $lumberCategory->id,
-                'unit_id' => $sheet->id,
-                'name' => 'Marine Plywood 1/4" x 4x8',
-                'brand' => null,
-                'size' => '1/4" x 4ft x 8ft',
-                'material' => 'Marine Plywood',
-                'cost_price' => 40800, // ₱408 (85%)
-                'retail_price' => 48000, // ₱480
-                'wholesale_price' => 45600, // ₱456 (95%)
-                'contractor_price' => 43200, // ₱432 (90%)
-                'current_stock' => 220,
-                'reorder_point' => 40,
-                'minimum_order_qty' => 10,
+                'category_id'        => $catPest->id,
+                'unit_id'            => $kg->id,
+                'name'               => 'Metaldehyde 6% (Snailmate) Molluscicide',
+                'brand'              => 'Bayer',
+                'size'               => '500 g',
+                'cost_price'         => 11200,  // ₱112
+                'retail_price'       => 14000,  // ₱140
+                'wholesale_price'    => 13300,  // ₱133
+                'contractor_price'   => 12600,  // ₱126
+                'current_stock'      => 210,
+                'reorder_point'      => 40,
+                'minimum_order_qty'  => 12,
             ],
             [
-                'category_id' => $lumberCategory->id,
-                'unit_id' => $sheet->id,
-                'name' => 'Marine Plywood 1/2" x 4x8',
-                'brand' => null,
-                'size' => '1/2" x 4ft x 8ft',
-                'material' => 'Marine Plywood',
-                'cost_price' => 63750, // ₱637.50 (85%)
-                'retail_price' => 75000, // ₱750
-                'wholesale_price' => 71250, // ₱712.50 (95%)
-                'contractor_price' => 67500, // ₱675 (90%)
-                'current_stock' => 180,
-                'reorder_point' => 35,
-                'minimum_order_qty' => 10,
-            ],
-            [
-                'category_id' => $lumberCategory->id,
-                'unit_id' => $sheet->id,
-                'name' => 'Ordinary Plywood 1/4" x 4x8',
-                'brand' => null,
-                'size' => '1/4" x 4ft x 8ft',
-                'material' => 'Ordinary Plywood',
-                'cost_price' => 32300, // ₱323 (85%)
-                'retail_price' => 38000, // ₱380
-                'wholesale_price' => 36100, // ₱361 (95%)
-                'contractor_price' => 34200, // ₱342 (90%)
-                'current_stock' => 250,
-                'reorder_point' => 45,
-                'minimum_order_qty' => 10,
-            ],
-            [
-                'category_id' => $lumberCategory->id,
-                'unit_id' => $sheet->id,
-                'name' => 'Lawanit Board 1/4" x 4x8',
-                'brand' => null,
-                'size' => '1/4" x 4ft x 8ft',
-                'material' => 'Hardboard',
-                'cost_price' => 25500, // ₱255 (85%)
-                'retail_price' => 30000, // ₱300
-                'wholesale_price' => 28500, // ₱285 (95%)
-                'contractor_price' => 27000, // ₱270 (90%)
-                'current_stock' => 195,
-                'reorder_point' => 40,
-                'minimum_order_qty' => 10,
+                'category_id'        => $catPest->id,
+                'unit_id'            => $kg->id,
+                'name'               => 'Mancozeb 80% WP Fungicide',
+                'brand'              => 'Indofil',
+                'size'               => '1 kg',
+                'cost_price'         => 25600,  // ₱256
+                'retail_price'       => 32000,  // ₱320
+                'wholesale_price'    => 30400,  // ₱304
+                'contractor_price'   => 28800,  // ₱288
+                'current_stock'      => 95,
+                'reorder_point'      => 20,
+                'minimum_order_qty'  => 6,
             ],
 
-            // PAINT & COATINGS (5 products)
+            // ═══════════════════════════════════════════
+            // FARM TOOLS & EQUIPMENT
+            // ═══════════════════════════════════════════
             [
-                'category_id' => $paintCategory->id,
-                'unit_id' => $gallon->id,
-                'name' => 'Boysen Latex White',
-                'brand' => 'Boysen',
-                'size' => '1 Gallon',
-                'color' => 'White',
-                'cost_price' => 48875, // ₱488.75 (85%)
-                'retail_price' => 57500, // ₱575
-                'wholesale_price' => 54625, // ₱546.25 (95%)
-                'contractor_price' => 51750, // ₱517.50 (90%)
-                'current_stock' => 185,
-                'reorder_point' => 30,
-                'minimum_order_qty' => 10,
+                'category_id'        => $catTools->id,
+                'unit_id'            => $pcs->id,
+                'name'               => 'Hand Sprayer (Knapsack) 16L',
+                'brand'              => 'Solo',
+                'size'               => '16 Liters',
+                'cost_price'         => 148000, // ₱1,480
+                'retail_price'       => 185000, // ₱1,850
+                'wholesale_price'    => 175750, // ₱1,757.50
+                'contractor_price'   => 166500, // ₱1,665
+                'current_stock'      => 45,
+                'reorder_point'      => 8,
+                'minimum_order_qty'  => 3,
             ],
             [
-                'category_id' => $paintCategory->id,
-                'unit_id' => $gallon->id,
-                'name' => 'Boysen Permacoat Latex',
-                'brand' => 'Boysen',
-                'size' => '1 Gallon',
-                'color' => 'White',
-                'cost_price' => 41225, // ₱412.25 (85%)
-                'retail_price' => 48500, // ₱485
-                'wholesale_price' => 46075, // ₱460.75 (95%)
-                'contractor_price' => 43650, // ₱436.50 (90%)
-                'current_stock' => 210,
-                'reorder_point' => 35,
-                'minimum_order_qty' => 10,
+                'category_id'        => $catTools->id,
+                'unit_id'            => $pcs->id,
+                'name'               => 'Kaingin Bolo (Itak) Heavy Duty',
+                'brand'              => 'Batangas Forge',
+                'size'               => '18 inch',
+                'cost_price'         => 22400,  // ₱224
+                'retail_price'       => 28000,  // ₱280
+                'wholesale_price'    => 26600,  // ₱266
+                'contractor_price'   => 25200,  // ₱252
+                'current_stock'      => 90,
+                'reorder_point'      => 15,
+                'minimum_order_qty'  => 10,
             ],
             [
-                'category_id' => $paintCategory->id,
-                'unit_id' => $gallon->id,
-                'name' => 'Davies Semi-Gloss Enamel',
-                'brand' => 'Davies',
-                'size' => '1 Gallon',
-                'color' => 'White',
-                'cost_price' => 52700, // ₱527 (85%)
-                'retail_price' => 62000, // ₱620
-                'wholesale_price' => 58900, // ₱589 (95%)
-                'contractor_price' => 55800, // ₱558 (90%)
-                'current_stock' => 165,
-                'reorder_point' => 28,
-                'minimum_order_qty' => 8,
+                'category_id'        => $catTools->id,
+                'unit_id'            => $pcs->id,
+                'name'               => 'Garden Hoe (Asarol)',
+                'brand'              => 'Generic',
+                'size'               => 'Standard',
+                'cost_price'         => 18400,  // ₱184
+                'retail_price'       => 23000,  // ₱230
+                'wholesale_price'    => 21850,  // ₱218.50
+                'contractor_price'   => 20700,  // ₱207
+                'current_stock'      => 75,
+                'reorder_point'      => 15,
+                'minimum_order_qty'  => 10,
             ],
             [
-                'category_id' => $paintCategory->id,
-                'unit_id' => $liter->id,
-                'name' => 'Paint Thinner',
-                'brand' => 'Generic',
-                'size' => '1 Liter',
-                'cost_price' => 6375, // ₱63.75 (85%)
-                'retail_price' => 7500, // ₱75
-                'wholesale_price' => 7125, // ₱71.25 (95%)
-                'contractor_price' => 6750, // ₱67.50 (90%)
-                'current_stock' => 420,
-                'reorder_point' => 80,
-                'minimum_order_qty' => 20,
+                'category_id'        => $catTools->id,
+                'unit_id'            => $pcs->id,
+                'name'               => 'Sickle / Lilik (Harvesting Blade)',
+                'brand'              => 'Generic',
+                'size'               => 'Standard',
+                'cost_price'         => 6400,   // ₱64
+                'retail_price'       => 8000,   // ₱80
+                'wholesale_price'    => 7600,   // ₱76
+                'contractor_price'   => 7200,   // ₱72
+                'current_stock'      => 130,
+                'reorder_point'      => 25,
+                'minimum_order_qty'  => 20,
             ],
             [
-                'category_id' => $paintCategory->id,
-                'unit_id' => $pcs->id,
-                'name' => 'Paint Roller 9 inch',
-                'brand' => 'Generic',
-                'size' => '9 inch',
-                'cost_price' => 4250, // ₱42.50 (85%)
-                'retail_price' => 5000, // ₱50
-                'wholesale_price' => 4750, // ₱47.50 (95%)
-                'contractor_price' => 4500, // ₱45 (90%)
-                'current_stock' => 350,
-                'reorder_point' => 60,
-                'minimum_order_qty' => 50,
-            ],
-
-            // PLUMBING (8 products)
-            [
-                'category_id' => $plumbingCategory->id,
-                'unit_id' => $length->id,
-                'name' => 'PVC Pipe 1/2" x 10ft',
-                'brand' => 'Pacific',
-                'size' => '1/2" x 10ft',
-                'cost_price' => 6800, // ₱68 (85%)
-                'retail_price' => 8000, // ₱80
-                'wholesale_price' => 7600, // ₱76 (95%)
-                'contractor_price' => 7200, // ₱72 (90%)
-                'current_stock' => 580,
-                'reorder_point' => 100,
-                'minimum_order_qty' => 50,
-            ],
-            [
-                'category_id' => $plumbingCategory->id,
-                'unit_id' => $length->id,
-                'name' => 'PVC Pipe 3/4" x 10ft',
-                'brand' => 'Pacific',
-                'size' => '3/4" x 10ft',
-                'cost_price' => 10200, // ₱102 (85%)
-                'retail_price' => 12000, // ₱120
-                'wholesale_price' => 11400, // ₱114 (95%)
-                'contractor_price' => 10800, // ₱108 (90%)
-                'current_stock' => 520,
-                'reorder_point' => 90,
-                'minimum_order_qty' => 40,
-            ],
-            [
-                'category_id' => $plumbingCategory->id,
-                'unit_id' => $length->id,
-                'name' => 'PVC Pipe 1" x 10ft',
-                'brand' => 'Pacific',
-                'size' => '1" x 10ft',
-                'cost_price' => 14450, // ₱144.50 (85%)
-                'retail_price' => 17000, // ₱170
-                'wholesale_price' => 16150, // ₱161.50 (95%)
-                'contractor_price' => 15300, // ₱153 (90%)
-                'current_stock' => 460,
-                'reorder_point' => 80,
-                'minimum_order_qty' => 30,
-            ],
-            [
-                'category_id' => $plumbingCategory->id,
-                'unit_id' => $pcs->id,
-                'name' => 'PVC Elbow 1/2"',
-                'brand' => 'Pacific',
-                'size' => '1/2"',
-                'cost_price' => 425, // ₱4.25 (85%)
-                'retail_price' => 500, // ₱5
-                'wholesale_price' => 475, // ₱4.75 (95%)
-                'contractor_price' => 450, // ₱4.50 (90%)
-                'current_stock' => 1250,
-                'reorder_point' => 250,
-                'minimum_order_qty' => 100,
-            ],
-            [
-                'category_id' => $plumbingCategory->id,
-                'unit_id' => $pcs->id,
-                'name' => 'PVC Elbow 3/4"',
-                'brand' => 'Pacific',
-                'size' => '3/4"',
-                'cost_price' => 680, // ₱6.80 (85%)
-                'retail_price' => 800, // ₱8
-                'wholesale_price' => 760, // ₱7.60 (95%)
-                'contractor_price' => 720, // ₱7.20 (90%)
-                'current_stock' => 1150,
-                'reorder_point' => 230,
-                'minimum_order_qty' => 100,
-            ],
-            [
-                'category_id' => $plumbingCategory->id,
-                'unit_id' => $pcs->id,
-                'name' => 'PVC Tee 1/2"',
-                'brand' => 'Pacific',
-                'size' => '1/2"',
-                'cost_price' => 595, // ₱5.95 (85%)
-                'retail_price' => 700, // ₱7
-                'wholesale_price' => 665, // ₱6.65 (95%)
-                'contractor_price' => 630, // ₱6.30 (90%)
-                'current_stock' => 980,
-                'reorder_point' => 200,
-                'minimum_order_qty' => 100,
-            ],
-            [
-                'category_id' => $plumbingCategory->id,
-                'unit_id' => $pcs->id,
-                'name' => 'Ball Valve 1/2"',
-                'brand' => 'Generic',
-                'size' => '1/2"',
-                'cost_price' => 4250, // ₱42.50 (85%)
-                'retail_price' => 5000, // ₱50
-                'wholesale_price' => 4750, // ₱47.50 (95%)
-                'contractor_price' => 4500, // ₱45 (90%)
-                'current_stock' => 320,
-                'reorder_point' => 60,
-                'minimum_order_qty' => 30,
-            ],
-            [
-                'category_id' => $plumbingCategory->id,
-                'unit_id' => $pcs->id,
-                'name' => 'Water Tank 500L',
-                'brand' => 'Neltex',
-                'size' => '500 Liters',
-                'cost_price' => 255000, // ₱2,550 (85%)
-                'retail_price' => 300000, // ₱3,000
-                'wholesale_price' => 285000, // ₱2,850 (95%)
-                'contractor_price' => 270000, // ₱2,700 (90%)
-                'current_stock' => 45,
-                'reorder_point' => 8,
-                'minimum_order_qty' => 3,
+                'category_id'        => $catTools->id,
+                'unit_id'            => $pcs->id,
+                'name'               => 'Rubber Boots (Bota de Goma) Farmer Grade',
+                'brand'              => 'Dunlop',
+                'size'               => 'Size 9',
+                'cost_price'         => 44000,  // ₱440
+                'retail_price'       => 55000,  // ₱550
+                'wholesale_price'    => 52250,  // ₱522.50
+                'contractor_price'   => 49500,  // ₱495
+                'current_stock'      => 60,
+                'reorder_point'      => 12,
+                'minimum_order_qty'  => 6,
             ],
 
-            // ELECTRICAL (6 products)
+            // ═══════════════════════════════════════════
+            // ANIMAL FEEDS & VETERINARY
+            // ═══════════════════════════════════════════
             [
-                'category_id' => $electricalCategory->id,
-                'unit_id' => $roll->id,
-                'name' => 'Electrical Wire 2.0mm',
-                'brand' => 'Generic',
-                'size' => '2.0mm x 100m',
-                'cost_price' => 76500, // ₱765 (85%)
-                'retail_price' => 90000, // ₱900
-                'wholesale_price' => 85500, // ₱855 (95%)
-                'contractor_price' => 81000, // ₱810 (90%)
-                'current_stock' => 85,
-                'reorder_point' => 15,
-                'minimum_order_qty' => 5,
+                'category_id'        => $catFeeds->id,
+                'unit_id'            => $sack->id,
+                'name'               => 'Broiler Starter Feeds (0-28 days)',
+                'brand'              => 'San Miguel Foods',
+                'size'               => '50 kg sack',
+                'cost_price'         => 192000, // ₱1,920
+                'retail_price'       => 240000, // ₱2,400
+                'wholesale_price'    => 228000, // ₱2,280
+                'contractor_price'   => 216000, // ₱2,160
+                'current_stock'      => 90,
+                'reorder_point'      => 15,
+                'minimum_order_qty'  => 5,
             ],
             [
-                'category_id' => $electricalCategory->id,
-                'unit_id' => $roll->id,
-                'name' => 'Electrical Wire 3.5mm',
-                'brand' => 'Generic',
-                'size' => '3.5mm x 100m',
-                'cost_price' => 127500, // ₱1,275 (85%)
-                'retail_price' => 150000, // ₱1,500
-                'wholesale_price' => 142500, // ₱1,425 (95%)
-                'contractor_price' => 135000, // ₱1,350 (90%)
-                'current_stock' => 62,
-                'reorder_point' => 12,
-                'minimum_order_qty' => 5,
+                'category_id'        => $catFeeds->id,
+                'unit_id'            => $sack->id,
+                'name'               => 'Hog Grower Feeds',
+                'brand'              => 'Robina Farms',
+                'size'               => '50 kg sack',
+                'cost_price'         => 196000, // ₱1,960
+                'retail_price'       => 245000, // ₱2,450
+                'wholesale_price'    => 232750, // ₱2,327.50
+                'contractor_price'   => 220500, // ₱2,205
+                'current_stock'      => 70,
+                'reorder_point'      => 12,
+                'minimum_order_qty'  => 5,
             ],
             [
-                'category_id' => $electricalCategory->id,
-                'unit_id' => $pcs->id,
-                'name' => 'Circuit Breaker 20A',
-                'brand' => 'Generic',
-                'size' => '20 Ampere',
-                'cost_price' => 10200, // ₱102 (85%)
-                'retail_price' => 12000, // ₱120
-                'wholesale_price' => 11400, // ₱114 (95%)
-                'contractor_price' => 10800, // ₱108 (90%)
-                'current_stock' => 280,
-                'reorder_point' => 50,
-                'minimum_order_qty' => 20,
+                'category_id'        => $catFeeds->id,
+                'unit_id'            => $sack->id,
+                'name'               => 'Carabao / Cattle Concentrate Feed',
+                'brand'              => 'San Miguel Foods',
+                'size'               => '40 kg sack',
+                'cost_price'         => 128000, // ₱1,280
+                'retail_price'       => 160000, // ₱1,600
+                'wholesale_price'    => 152000, // ₱1,520
+                'contractor_price'   => 144000, // ₱1,440
+                'current_stock'      => 50,
+                'reorder_point'      => 10,
+                'minimum_order_qty'  => 5,
             ],
             [
-                'category_id' => $electricalCategory->id,
-                'unit_id' => $pcs->id,
-                'name' => 'Convenience Outlet',
-                'brand' => 'Generic',
-                'size' => 'Standard',
-                'cost_price' => 2550, // ₱25.50 (85%)
-                'retail_price' => 3000, // ₱30
-                'wholesale_price' => 2850, // ₱28.50 (95%)
-                'contractor_price' => 2700, // ₱27 (90%)
-                'current_stock' => 650,
-                'reorder_point' => 120,
-                'minimum_order_qty' => 50,
+                'category_id'        => $catFeeds->id,
+                'unit_id'            => $pcs->id,
+                'name'               => 'Vitamin B Complex + Iron Injectable (10 mL)',
+                'brand'              => 'Vetplus',
+                'size'               => '10 mL ampule',
+                'cost_price'         => 7200,   // ₱72
+                'retail_price'       => 9000,   // ₱90
+                'wholesale_price'    => 8550,   // ₱85.50
+                'contractor_price'   => 8100,   // ₱81
+                'current_stock'      => 120,
+                'reorder_point'      => 24,
+                'minimum_order_qty'  => 12,
             ],
             [
-                'category_id' => $electricalCategory->id,
-                'unit_id' => $pcs->id,
-                'name' => 'Light Switch Single Gang',
-                'brand' => 'Generic',
-                'size' => '1 Gang',
-                'cost_price' => 2125, // ₱21.25 (85%)
-                'retail_price' => 2500, // ₱25
-                'wholesale_price' => 2375, // ₱23.75 (95%)
-                'contractor_price' => 2250, // ₱22.50 (90%)
-                'current_stock' => 720,
-                'reorder_point' => 140,
-                'minimum_order_qty' => 50,
-            ],
-            [
-                'category_id' => $electricalCategory->id,
-                'unit_id' => $length->id,
-                'name' => 'PVC Conduit 1/2" x 10ft',
-                'brand' => 'Generic',
-                'size' => '1/2" x 10ft',
-                'cost_price' => 5950, // ₱59.50 (85%)
-                'retail_price' => 7000, // ₱70
-                'wholesale_price' => 6650, // ₱66.50 (95%)
-                'contractor_price' => 6300, // ₱63 (90%)
-                'current_stock' => 420,
-                'reorder_point' => 75,
-                'minimum_order_qty' => 30,
+                'category_id'        => $catFeeds->id,
+                'unit_id'            => $tab->id,
+                'name'               => 'Ivermectin Dewormer Tablet (Livestock)',
+                'brand'              => 'Merial',
+                'size'               => '10 tablets/blister',
+                'cost_price'         => 8000,   // ₱80
+                'retail_price'       => 10000,  // ₱100
+                'wholesale_price'    => 9500,   // ₱95
+                'contractor_price'   => 9000,   // ₱90
+                'current_stock'      => 180,
+                'reorder_point'      => 40,
+                'minimum_order_qty'  => 20,
             ],
 
-            // NAILS & FASTENERS (4 products)
+            // ═══════════════════════════════════════════
+            // FISHING SUPPLIES
+            // ═══════════════════════════════════════════
             [
-                'category_id' => $nailsCategory->id,
-                'unit_id' => $kg->id,
-                'name' => 'Common Wire Nails 2"',
-                'brand' => 'Generic',
-                'size' => '2 inch',
-                'cost_price' => 6800, // ₱68 (85%)
-                'retail_price' => 8000, // ₱80
-                'wholesale_price' => 7600, // ₱76 (95%)
-                'contractor_price' => 7200, // ₱72 (90%)
-                'current_stock' => 850,
-                'reorder_point' => 160,
-                'minimum_order_qty' => 50,
+                'category_id'        => $catFishing->id,
+                'unit_id'            => $sack->id,
+                'name'               => 'Tilapia Fingerling Feeds (Floater)',
+                'brand'              => 'Vitarich',
+                'size'               => '25 kg sack',
+                'cost_price'         => 104000, // ₱1,040
+                'retail_price'       => 130000, // ₱1,300
+                'wholesale_price'    => 123500, // ₱1,235
+                'contractor_price'   => 117000, // ₱1,170
+                'current_stock'      => 55,
+                'reorder_point'      => 10,
+                'minimum_order_qty'  => 3,
             ],
             [
-                'category_id' => $nailsCategory->id,
-                'unit_id' => $kg->id,
-                'name' => 'Common Wire Nails 3"',
-                'brand' => 'Generic',
-                'size' => '3 inch',
-                'cost_price' => 6800, // ₱68 (85%)
-                'retail_price' => 8000, // ₱80
-                'wholesale_price' => 7600, // ₱76 (95%)
-                'contractor_price' => 7200, // ₱72 (90%)
-                'current_stock' => 920,
-                'reorder_point' => 180,
-                'minimum_order_qty' => 50,
-            ],
-            [
-                'category_id' => $nailsCategory->id,
-                'unit_id' => $box->id,
-                'name' => 'Concrete Nails 3"',
-                'brand' => 'Generic',
-                'size' => '3 inch',
-                'cost_price' => 8500, // ₱85 (85%)
-                'retail_price' => 10000, // ₱100
-                'wholesale_price' => 9500, // ₱95 (95%)
-                'contractor_price' => 9000, // ₱90 (90%)
-                'current_stock' => 380,
-                'reorder_point' => 70,
-                'minimum_order_qty' => 30,
-            ],
-            [
-                'category_id' => $nailsCategory->id,
-                'unit_id' => $box->id,
-                'name' => 'Self-Tapping Screws 1"',
-                'brand' => 'Generic',
-                'size' => '1 inch',
-                'cost_price' => 12750, // ₱127.50 (85%)
-                'retail_price' => 15000, // ₱150
-                'wholesale_price' => 14250, // ₱142.50 (95%)
-                'contractor_price' => 13500, // ₱135 (90%)
-                'current_stock' => 280,
-                'reorder_point' => 50,
-                'minimum_order_qty' => 20,
+                'category_id'        => $catFishing->id,
+                'unit_id'            => $roll->id,
+                'name'               => 'Nylon Monofilament Fishing Line #40',
+                'brand'              => 'Generic',
+                'size'               => '100m roll',
+                'cost_price'         => 5600,   // ₱56
+                'retail_price'       => 7000,   // ₱70
+                'wholesale_price'    => 6650,   // ₱66.50
+                'contractor_price'   => 6300,   // ₱63
+                'current_stock'      => 200,
+                'reorder_point'      => 40,
+                'minimum_order_qty'  => 20,
             ],
 
-            // ROOFING & CEILING (3 products)
+            // ═══════════════════════════════════════════
+            // FARM PACKAGING & STORAGE
+            // ═══════════════════════════════════════════
             [
-                'category_id' => $roofingCategory->id,
-                'unit_id' => $sheet->id,
-                'name' => 'GI Corrugated Sheet 0.5mm x 2x8',
-                'brand' => 'Generic',
-                'size' => '0.5mm x 2ft x 8ft',
-                'material' => 'Galvanized Iron',
-                'cost_price' => 38250, // ₱382.50 (85%)
-                'retail_price' => 45000, // ₱450
-                'wholesale_price' => 42750, // ₱427.50 (95%)
-                'contractor_price' => 40500, // ₱405 (90%)
-                'current_stock' => 320,
-                'reorder_point' => 60,
-                'minimum_order_qty' => 20,
+                'category_id'        => $catPacking->id,
+                'unit_id'            => $pcs->id,
+                'name'               => 'Polypropylene (PP) Rice Sack 50kg',
+                'brand'              => 'Generic',
+                'size'               => '50 kg capacity',
+                'cost_price'         => 1200,   // ₱12
+                'retail_price'       => 1500,   // ₱15
+                'wholesale_price'    => 1425,   // ₱14.25
+                'contractor_price'   => 1350,   // ₱13.50
+                'current_stock'      => 2500,
+                'reorder_point'      => 500,
+                'minimum_order_qty'  => 100,
             ],
             [
-                'category_id' => $roofingCategory->id,
-                'unit_id' => $sheet->id,
-                'name' => 'Ceiling Board 4x8',
-                'brand' => 'Generic',
-                'size' => '4ft x 8ft',
-                'cost_price' => 19550, // ₱195.50 (85%)
-                'retail_price' => 23000, // ₱230
-                'wholesale_price' => 21850, // ₱218.50 (95%)
-                'contractor_price' => 20700, // ₱207 (90%)
-                'current_stock' => 250,
-                'reorder_point' => 45,
-                'minimum_order_qty' => 20,
+                'category_id'        => $catPacking->id,
+                'unit_id'            => $pcs->id,
+                'name'               => 'Agricultural Tarpaulin (6x8 ft)',
+                'brand'              => 'Generic',
+                'size'               => '6ft x 8ft',
+                'cost_price'         => 18400,  // ₱184
+                'retail_price'       => 23000,  // ₱230
+                'wholesale_price'    => 21850,  // ₱218.50
+                'contractor_price'   => 20700,  // ₱207
+                'current_stock'      => 80,
+                'reorder_point'      => 15,
+                'minimum_order_qty'  => 10,
             ],
             [
-                'category_id' => $roofingCategory->id,
-                'unit_id' => $pcs->id,
-                'name' => 'Roofing Screw with Washer',
-                'brand' => 'Generic',
-                'size' => '1 inch',
-                'cost_price' => 170, // ₱1.70 (85%)
-                'retail_price' => 200, // ₱2
-                'wholesale_price' => 190, // ₱1.90 (95%)
-                'contractor_price' => 180, // ₱1.80 (90%)
-                'current_stock' => 3500,
-                'reorder_point' => 700,
-                'minimum_order_qty' => 500,
-            ],
-
-            // SAND & GRAVEL (3 products)
-            [
-                'category_id' => $sandCategory->id,
-                'unit_id' => $cum->id,
-                'name' => 'River Sand',
-                'brand' => null,
-                'size' => 'Per Cubic Meter',
-                'cost_price' => 68000, // ₱680 (85%)
-                'retail_price' => 80000, // ₱800
-                'wholesale_price' => 76000, // ₱760 (95%)
-                'contractor_price' => 72000, // ₱720 (90%)
-                'current_stock' => 15,
-                'reorder_point' => 3,
-                'minimum_order_qty' => 2,
-            ],
-            [
-                'category_id' => $sandCategory->id,
-                'unit_id' => $cum->id,
-                'name' => 'Washed Sand',
-                'brand' => null,
-                'size' => 'Per Cubic Meter',
-                'cost_price' => 93500, // ₱935 (85%)
-                'retail_price' => 110000, // ₱1,100
-                'wholesale_price' => 104500, // ₱1,045 (95%)
-                'contractor_price' => 99000, // ₱990 (90%)
-                'current_stock' => 12,
-                'reorder_point' => 3,
-                'minimum_order_qty' => 2,
-            ],
-            [
-                'category_id' => $sandCategory->id,
-                'unit_id' => $cum->id,
-                'name' => 'Gravel 3/4"',
-                'brand' => null,
-                'size' => '3/4 inch',
-                'cost_price' => 85000, // ₱850 (85%)
-                'retail_price' => 100000, // ₱1,000
-                'wholesale_price' => 95000, // ₱950 (95%)
-                'contractor_price' => 90000, // ₱900 (90%)
-                'current_stock' => 18,
-                'reorder_point' => 4,
-                'minimum_order_qty' => 2,
+                'category_id'        => $catPacking->id,
+                'unit_id'            => $roll->id,
+                'name'               => 'Baling Twine (Abaca/Plastic)',
+                'brand'              => 'Generic',
+                'size'               => '200m roll',
+                'cost_price'         => 8800,   // ₱88
+                'retail_price'       => 11000,  // ₱110
+                'wholesale_price'    => 10450,  // ₱104.50
+                'contractor_price'   => 9900,   // ₱99
+                'current_stock'      => 120,
+                'reorder_point'      => 25,
+                'minimum_order_qty'  => 10,
             ],
 
-            // HOLLOW BLOCKS & MASONRY (2 products)
+            // ═══════════════════════════════════════════
+            // RICE & GRAINS
+            // ═══════════════════════════════════════════
             [
-                'category_id' => $blocksCategory->id,
-                'unit_id' => $pcs->id,
-                'name' => 'CHB 4" Standard',
-                'brand' => null,
-                'size' => '4 inch',
-                'cost_price' => 935, // ₱9.35 (85%)
-                'retail_price' => 1100, // ₱11
-                'wholesale_price' => 1045, // ₱10.45 (95%)
-                'contractor_price' => 990, // ₱9.90 (90%)
-                'current_stock' => 4500,
-                'reorder_point' => 800,
-                'minimum_order_qty' => 500,
+                'category_id'        => $catRice->id,
+                'unit_id'            => $kg->id,
+                'name'               => 'Well-milled Rice (Sinandomeng)',
+                'brand'              => 'Local',
+                'size'               => 'per kg',
+                'cost_price'         => 4500,   // ₱45
+                'retail_price'       => 5400,   // ₱54
+                'wholesale_price'    => 5130,   // ₱51.30
+                'contractor_price'   => 4860,   // ₱48.60 (member price)
+                'current_stock'      => 3000,
+                'reorder_point'      => 500,
+                'minimum_order_qty'  => 50,
             ],
             [
-                'category_id' => $blocksCategory->id,
-                'unit_id' => $pcs->id,
-                'name' => 'CHB 6" Standard',
-                'brand' => null,
-                'size' => '6 inch',
-                'cost_price' => 1360, // ₱13.60 (85%)
-                'retail_price' => 1600, // ₱16
-                'wholesale_price' => 1520, // ₱15.20 (95%)
-                'contractor_price' => 1440, // ₱14.40 (90%)
-                'current_stock' => 3800,
-                'reorder_point' => 700,
-                'minimum_order_qty' => 400,
+                'category_id'        => $catRice->id,
+                'unit_id'            => $kg->id,
+                'name'               => 'Dinorado Premium Rice',
+                'brand'              => 'Local',
+                'size'               => 'per kg',
+                'cost_price'         => 5200,   // ₱52
+                'retail_price'       => 6300,   // ₱63
+                'wholesale_price'    => 5985,   // ₱59.85
+                'contractor_price'   => 5670,   // ₱56.70
+                'current_stock'      => 1500,
+                'reorder_point'      => 300,
+                'minimum_order_qty'  => 25,
+            ],
+            [
+                'category_id'        => $catRice->id,
+                'unit_id'            => $kg->id,
+                'name'               => 'Yellow Corn Grits',
+                'brand'              => 'Local',
+                'size'               => 'per kg',
+                'cost_price'         => 2400,   // ₱24
+                'retail_price'       => 3000,   // ₱30
+                'wholesale_price'    => 2850,   // ₱28.50
+                'contractor_price'   => 2700,   // ₱27
+                'current_stock'      => 800,
+                'reorder_point'      => 150,
+                'minimum_order_qty'  => 25,
+            ],
+            [
+                'category_id'        => $catRice->id,
+                'unit_id'            => $kg->id,
+                'name'               => 'Monggo (Mung Beans)',
+                'brand'              => 'Local',
+                'size'               => 'per kg',
+                'cost_price'         => 9600,   // ₱96
+                'retail_price'       => 12000,  // ₱120
+                'wholesale_price'    => 11400,  // ₱114
+                'contractor_price'   => 10800,  // ₱108
+                'current_stock'      => 250,
+                'reorder_point'      => 50,
+                'minimum_order_qty'  => 10,
             ],
 
-            // SAFETY GEAR (3 products)
+            // ═══════════════════════════════════════════
+            // COOKING ESSENTIALS
+            // ═══════════════════════════════════════════
             [
-                'category_id' => $safetyCategory->id,
-                'unit_id' => $pcs->id,
-                'name' => 'Safety Helmet',
-                'brand' => 'Generic',
-                'size' => 'Standard',
-                'cost_price' => 12750, // ₱127.50 (85%)
-                'retail_price' => 15000, // ₱150
-                'wholesale_price' => 14250, // ₱142.50 (95%)
-                'contractor_price' => 13500, // ₱135 (90%)
-                'current_stock' => 180,
-                'reorder_point' => 35,
-                'minimum_order_qty' => 20,
+                'category_id'        => $catCooking->id,
+                'unit_id'            => $liter->id,
+                'name'               => 'Minola Coconut Cooking Oil',
+                'brand'              => 'Minola',
+                'size'               => '1 L',
+                'cost_price'         => 9200,   // ₱92
+                'retail_price'       => 11500,  // ₱115
+                'wholesale_price'    => 10925,  // ₱109.25
+                'contractor_price'   => 10350,  // ₱103.50
+                'current_stock'      => 350,
+                'reorder_point'      => 60,
+                'minimum_order_qty'  => 12,
             ],
             [
-                'category_id' => $safetyCategory->id,
-                'unit_id' => $pcs->id,
-                'name' => 'Work Gloves Leather',
-                'brand' => 'Generic',
-                'size' => 'Large',
-                'cost_price' => 3400, // ₱34 (85%)
-                'retail_price' => 4000, // ₱40
-                'wholesale_price' => 3800, // ₱38 (95%)
-                'contractor_price' => 3600, // ₱36 (90%)
-                'current_stock' => 320,
-                'reorder_point' => 60,
-                'minimum_order_qty' => 50,
+                'category_id'        => $catCooking->id,
+                'unit_id'            => $kg->id,
+                'name'               => 'Refined White Sugar (Granulated)',
+                'brand'              => 'Crystalline',
+                'size'               => 'per kg',
+                'cost_price'         => 7200,   // ₱72
+                'retail_price'       => 9000,   // ₱90
+                'wholesale_price'    => 8550,   // ₱85.50
+                'contractor_price'   => 8100,   // ₱81
+                'current_stock'      => 500,
+                'reorder_point'      => 80,
+                'minimum_order_qty'  => 10,
             ],
             [
-                'category_id' => $safetyCategory->id,
-                'unit_id' => $pcs->id,
-                'name' => 'Safety Goggles',
-                'brand' => 'Generic',
-                'size' => 'Standard',
-                'cost_price' => 4250, // ₱42.50 (85%)
-                'retail_price' => 5000, // ₱50
-                'wholesale_price' => 4750, // ₱47.50 (95%)
-                'contractor_price' => 4500, // ₱45 (90%)
-                'current_stock' => 220,
-                'reorder_point' => 40,
-                'minimum_order_qty' => 30,
+                'category_id'        => $catCooking->id,
+                'unit_id'            => $kg->id,
+                'name'               => 'Iodized Salt (Asin)',
+                'brand'              => 'Silver Swan',
+                'size'               => 'per kg',
+                'cost_price'         => 1200,   // ₱12
+                'retail_price'       => 1500,   // ₱15
+                'wholesale_price'    => 1425,   // ₱14.25
+                'contractor_price'   => 1350,   // ₱13.50
+                'current_stock'      => 600,
+                'reorder_point'      => 100,
+                'minimum_order_qty'  => 20,
+            ],
+            [
+                'category_id'        => $catCooking->id,
+                'unit_id'            => $mL->id,
+                'name'               => 'Silver Swan Soy Sauce (Toyo)',
+                'brand'              => 'Silver Swan',
+                'size'               => '350 mL',
+                'cost_price'         => 2400,   // ₱24
+                'retail_price'       => 3000,   // ₱30
+                'wholesale_price'    => 2850,   // ₱28.50
+                'contractor_price'   => 2700,   // ₱27
+                'current_stock'      => 360,
+                'reorder_point'      => 60,
+                'minimum_order_qty'  => 24,
+            ],
+            [
+                'category_id'        => $catCooking->id,
+                'unit_id'            => $mL->id,
+                'name'               => 'Datu Puti Vinegar (Suka)',
+                'brand'              => 'Datu Puti',
+                'size'               => '350 mL',
+                'cost_price'         => 1800,   // ₱18
+                'retail_price'       => 2200,   // ₱22
+                'wholesale_price'    => 2090,   // ₱20.90
+                'contractor_price'   => 1980,   // ₱19.80
+                'current_stock'      => 360,
+                'reorder_point'      => 60,
+                'minimum_order_qty'  => 24,
+            ],
+
+            // ═══════════════════════════════════════════
+            // CANNED & PROCESSED GOODS
+            // ═══════════════════════════════════════════
+            [
+                'category_id'        => $catCanned->id,
+                'unit_id'            => $pcs->id,
+                'name'               => 'Lucky Me Chicken Noodles (Instant Noodles)',
+                'brand'              => 'Monde Nissin',
+                'size'               => '55 g pack',
+                'cost_price'         => 1090,   // ₱10.90
+                'retail_price'       => 1400,   // ₱14
+                'wholesale_price'    => 1330,   // ₱13.30
+                'contractor_price'   => 1260,   // ₱12.60
+                'current_stock'      => 1200,
+                'reorder_point'      => 240,
+                'minimum_order_qty'  => 60,
+            ],
+            [
+                'category_id'        => $catCanned->id,
+                'unit_id'            => $pcs->id,
+                'name'               => '555 Sardines in Tomato Sauce',
+                'brand'              => '555',
+                'size'               => '155 g can',
+                'cost_price'         => 2720,   // ₱27.20
+                'retail_price'       => 3400,   // ₱34
+                'wholesale_price'    => 3230,   // ₱32.30
+                'contractor_price'   => 3060,   // ₱30.60
+                'current_stock'      => 800,
+                'reorder_point'      => 120,
+                'minimum_order_qty'  => 48,
+            ],
+            [
+                'category_id'        => $catCanned->id,
+                'unit_id'            => $pcs->id,
+                'name'               => 'Century Tuna (Flakes in Oil)',
+                'brand'              => 'Century Pacific',
+                'size'               => '180 g can',
+                'cost_price'         => 4960,   // ₱49.60
+                'retail_price'       => 6200,   // ₱62
+                'wholesale_price'    => 5890,   // ₱58.90
+                'contractor_price'   => 5580,   // ₱55.80
+                'current_stock'      => 500,
+                'reorder_point'      => 80,
+                'minimum_order_qty'  => 24,
+            ],
+            [
+                'category_id'        => $catCanned->id,
+                'unit_id'            => $pcs->id,
+                'name'               => 'Argentina Corned Beef',
+                'brand'              => 'Purefoods',
+                'size'               => '260 g can',
+                'cost_price'         => 6400,   // ₱64
+                'retail_price'       => 8000,   // ₱80
+                'wholesale_price'    => 7600,   // ₱76
+                'contractor_price'   => 7200,   // ₱72
+                'current_stock'      => 300,
+                'reorder_point'      => 48,
+                'minimum_order_qty'  => 24,
+            ],
+
+            // ═══════════════════════════════════════════
+            // BEVERAGES
+            // ═══════════════════════════════════════════
+            [
+                'category_id'        => $catBev->id,
+                'unit_id'            => $sachet->id,
+                'name'               => 'Nescafe 3-in-1 Coffee (Original)',
+                'brand'              => 'Nestlé',
+                'size'               => '20g sachet',
+                'cost_price'         => 1000,   // ₱10
+                'retail_price'       => 1300,   // ₱13
+                'wholesale_price'    => 1235,   // ₱12.35
+                'contractor_price'   => 1170,   // ₱11.70
+                'current_stock'      => 1500,
+                'reorder_point'      => 300,
+                'minimum_order_qty'  => 100,
+            ],
+            [
+                'category_id'        => $catBev->id,
+                'unit_id'            => $pcs->id,
+                'name'               => 'Coca-Cola 1.5L PET Bottle',
+                'brand'              => 'Coca-Cola',
+                'size'               => '1.5 L',
+                'cost_price'         => 5840,   // ₱58.40
+                'retail_price'       => 7300,   // ₱73
+                'wholesale_price'    => 6935,   // ₱69.35
+                'contractor_price'   => 6570,   // ₱65.70
+                'current_stock'      => 240,
+                'reorder_point'      => 48,
+                'minimum_order_qty'  => 24,
+            ],
+            [
+                'category_id'        => $catBev->id,
+                'unit_id'            => $pcs->id,
+                'name'               => 'Absolute Distilled Water 500mL',
+                'brand'              => 'Wilcon',
+                'size'               => '500 mL',
+                'cost_price'         => 880,    // ₱8.80
+                'retail_price'       => 1100,   // ₱11
+                'wholesale_price'    => 1045,   // ₱10.45
+                'contractor_price'   => 990,    // ₱9.90
+                'current_stock'      => 600,
+                'reorder_point'      => 120,
+                'minimum_order_qty'  => 24,
+            ],
+            [
+                'category_id'        => $catBev->id,
+                'unit_id'            => $sachet->id,
+                'name'               => 'Tang Powdered Juice (Dalandan)',
+                'brand'              => 'Kraft',
+                'size'               => '25g sachet',
+                'cost_price'         => 640,    // ₱6.40
+                'retail_price'       => 800,    // ₱8
+                'wholesale_price'    => 760,    // ₱7.60
+                'contractor_price'   => 720,    // ₱7.20
+                'current_stock'      => 900,
+                'reorder_point'      => 150,
+                'minimum_order_qty'  => 100,
+            ],
+
+            // ═══════════════════════════════════════════
+            // PERSONAL CARE & HYGIENE
+            // ═══════════════════════════════════════════
+            [
+                'category_id'        => $catHygiene->id,
+                'unit_id'            => $pcs->id,
+                'name'               => 'Safeguard Bar Soap (White)',
+                'brand'              => 'P&G',
+                'size'               => '135 g bar',
+                'cost_price'         => 5040,   // ₱50.40
+                'retail_price'       => 6300,   // ₱63
+                'wholesale_price'    => 5985,   // ₱59.85
+                'contractor_price'   => 5670,   // ₱56.70
+                'current_stock'      => 500,
+                'reorder_point'      => 80,
+                'minimum_order_qty'  => 48,
+            ],
+            [
+                'category_id'        => $catHygiene->id,
+                'unit_id'            => $pcs->id,
+                'name'               => 'Head & Shoulders Shampoo Sachet',
+                'brand'              => 'P&G',
+                'size'               => '12 mL sachet',
+                'cost_price'         => 480,    // ₱4.80
+                'retail_price'       => 600,    // ₱6
+                'wholesale_price'    => 570,    // ₱5.70
+                'contractor_price'   => 540,    // ₱5.40
+                'current_stock'      => 2000,
+                'reorder_point'      => 400,
+                'minimum_order_qty'  => 200,
+            ],
+            [
+                'category_id'        => $catHygiene->id,
+                'unit_id'            => $pcs->id,
+                'name'               => 'Colgate Toothpaste (Regular)',
+                'brand'              => 'Colgate',
+                'size'               => '75 mL',
+                'cost_price'         => 4960,   // ₱49.60
+                'retail_price'       => 6200,   // ₱62
+                'wholesale_price'    => 5890,   // ₱58.90
+                'contractor_price'   => 5580,   // ₱55.80
+                'current_stock'      => 360,
+                'reorder_point'      => 60,
+                'minimum_order_qty'  => 24,
+            ],
+            [
+                'category_id'        => $catHygiene->id,
+                'unit_id'            => $kg->id,
+                'name'               => 'Ariel Powder Detergent',
+                'brand'              => 'P&G',
+                'size'               => '1 kg pack',
+                'cost_price'         => 12000,  // ₱120
+                'retail_price'       => 15000,  // ₱150
+                'wholesale_price'    => 14250,  // ₱142.50
+                'contractor_price'   => 13500,  // ₱135
+                'current_stock'      => 280,
+                'reorder_point'      => 48,
+                'minimum_order_qty'  => 12,
+            ],
+
+            // ═══════════════════════════════════════════
+            // BABY & INFANT NEEDS
+            // ═══════════════════════════════════════════
+            [
+                'category_id'        => $catBaby->id,
+                'unit_id'            => $pcs->id,
+                'name'               => 'Pampers Baby Dry Diaper (Medium)',
+                'brand'              => 'Pampers',
+                'size'               => 'Medium (7-12 kg) – 44 pcs',
+                'cost_price'         => 50400,  // ₱504
+                'retail_price'       => 63000,  // ₱630
+                'wholesale_price'    => 59850,  // ₱598.50
+                'contractor_price'   => 56700,  // ₱567
+                'current_stock'      => 60,
+                'reorder_point'      => 10,
+                'minimum_order_qty'  => 6,
+            ],
+            [
+                'category_id'        => $catBaby->id,
+                'unit_id'            => $kg->id,
+                'name'               => 'Bear Brand Adult Plus Powdered Milk',
+                'brand'              => 'Nestlé',
+                'size'               => '1 kg pack',
+                'cost_price'         => 38400,  // ₱384
+                'retail_price'       => 48000,  // ₱480
+                'wholesale_price'    => 45600,  // ₱456
+                'contractor_price'   => 43200,  // ₱432
+                'current_stock'      => 100,
+                'reorder_point'      => 20,
+                'minimum_order_qty'  => 6,
+            ],
+
+            // ═══════════════════════════════════════════
+            // SNACKS & CONFECTIONERY
+            // ═══════════════════════════════════════════
+            [
+                'category_id'        => $catSnacks->id,
+                'unit_id'            => $pcs->id,
+                'name'               => 'Rebisco Crackers (Skyflakes)',
+                'brand'              => 'Rebisco',
+                'size'               => '250 g pack',
+                'cost_price'         => 3360,   // ₱33.60
+                'retail_price'       => 4200,   // ₱42
+                'wholesale_price'    => 3990,   // ₱39.90
+                'contractor_price'   => 3780,   // ₱37.80
+                'current_stock'      => 400,
+                'reorder_point'      => 60,
+                'minimum_order_qty'  => 24,
+            ],
+            [
+                'category_id'        => $catSnacks->id,
+                'unit_id'            => $pcs->id,
+                'name'               => 'Jack & Jill Potato Chips (Original)',
+                'brand'              => 'Jack & Jill',
+                'size'               => '60 g bag',
+                'cost_price'         => 2000,   // ₱20
+                'retail_price'       => 2500,   // ₱25
+                'wholesale_price'    => 2375,   // ₱23.75
+                'contractor_price'   => 2250,   // ₱22.50
+                'current_stock'      => 500,
+                'reorder_point'      => 80,
+                'minimum_order_qty'  => 24,
+            ],
+            [
+                'category_id'        => $catSnacks->id,
+                'unit_id'            => $pcs->id,
+                'name'               => 'Gardenia Classic White Bread (Large)',
+                'brand'              => 'Gardenia',
+                'size'               => '600 g loaf',
+                'cost_price'         => 5200,   // ₱52
+                'retail_price'       => 6500,   // ₱65
+                'wholesale_price'    => 6175,   // ₱61.75
+                'contractor_price'   => 5850,   // ₱58.50
+                'current_stock'      => 80,
+                'reorder_point'      => 15,
+                'minimum_order_qty'  => 10,
+            ],
+
+            // ═══════════════════════════════════════════
+            // GENERAL MERCHANDISE
+            // ═══════════════════════════════════════════
+            [
+                'category_id'        => $catGeneral->id,
+                'unit_id'            => $pcs->id,
+                'name'               => 'Eveready AA Batteries (2-pack)',
+                'brand'              => 'Eveready',
+                'size'               => '2 pcs/pack',
+                'cost_price'         => 4800,   // ₱48
+                'retail_price'       => 6000,   // ₱60
+                'wholesale_price'    => 5700,   // ₱57
+                'contractor_price'   => 5400,   // ₱54
+                'current_stock'      => 200,
+                'reorder_point'      => 40,
+                'minimum_order_qty'  => 24,
+            ],
+            [
+                'category_id'        => $catGeneral->id,
+                'unit_id'            => $pcs->id,
+                'name'               => 'Wax Candle 4-inch (per piece)',
+                'brand'              => 'Generic',
+                'size'               => '4 inch',
+                'cost_price'         => 480,    // ₱4.80
+                'retail_price'       => 600,    // ₱6
+                'wholesale_price'    => 570,    // ₱5.70
+                'contractor_price'   => 540,    // ₱5.40
+                'current_stock'      => 1000,
+                'reorder_point'      => 200,
+                'minimum_order_qty'  => 100,
+            ],
+            [
+                'category_id'        => $catGeneral->id,
+                'unit_id'            => $box->id,
+                'name'               => 'Strike Matchbox (Posporo)',
+                'brand'              => 'Strike',
+                'size'               => '40 matchsticks/box',
+                'cost_price'         => 240,    // ₱2.40
+                'retail_price'       => 300,    // ₱3
+                'wholesale_price'    => 285,    // ₱2.85
+                'contractor_price'   => 270,    // ₱2.70
+                'current_stock'      => 1500,
+                'reorder_point'      => 300,
+                'minimum_order_qty'  => 200,
+            ],
+            [
+                'category_id'        => $catGeneral->id,
+                'unit_id'            => $pcs->id,
+                'name'               => 'Intermediate Pad Paper',
+                'brand'              => 'Pad',
+                'size'               => '40-leaf intermediate',
+                'cost_price'         => 2640,   // ₱26.40
+                'retail_price'       => 3300,   // ₱33
+                'wholesale_price'    => 3135,   // ₱31.35
+                'contractor_price'   => 2970,   // ₱29.70
+                'current_stock'      => 300,
+                'reorder_point'      => 50,
+                'minimum_order_qty'  => 24,
             ],
         ];
 
         $skuCounter = 1001;
         foreach ($products as $product) {
             Product::create([
-                'uuid' => Str::uuid(),
-                'store_id' => $store->id,
-                'category_id' => $product['category_id'],
-                'unit_id' => $product['unit_id'],
-                'name' => $product['name'],
-                'sku' => 'JMH-' . $skuCounter++,
-                'brand' => $product['brand'] ?? null,
-                'size' => $product['size'] ?? null,
-                'material' => $product['material'] ?? null,
-                'color' => $product['color'] ?? null,
-                'cost_price' => $product['cost_price'],
-                'retail_price' => $product['retail_price'],
-                'wholesale_price' => $product['wholesale_price'],
-                'contractor_price' => $product['contractor_price'],
-                'current_stock' => $product['current_stock'],
-                'reorder_point' => $product['reorder_point'],
-                'minimum_order_qty' => $product['minimum_order_qty'],
-                'is_active' => true,
-                'is_vat_exempt' => false,
-                'track_inventory' => true,
+                'uuid'                => Str::uuid(),
+                'store_id'            => $store->id,
+                'category_id'         => $product['category_id'],
+                'unit_id'             => $product['unit_id'],
+                'name'                => $product['name'],
+                'sku'                 => 'SNLSI-' . $skuCounter++,
+                'brand'               => $product['brand'] ?? null,
+                'size'                => $product['size'] ?? null,
+                'material'            => $product['material'] ?? null,
+                'color'               => $product['color'] ?? null,
+                'cost_price'          => $product['cost_price'],
+                'retail_price'        => $product['retail_price'],
+                'wholesale_price'     => $product['wholesale_price'],
+                'contractor_price'    => $product['contractor_price'],
+                'current_stock'       => $product['current_stock'],
+                'reorder_point'       => $product['reorder_point'],
+                'minimum_order_qty'   => $product['minimum_order_qty'],
+                'is_active'           => true,
+                'is_vat_exempt'       => false,
+                'track_inventory'     => true,
                 'allow_negative_stock' => false,
             ]);
         }

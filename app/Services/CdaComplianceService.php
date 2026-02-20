@@ -79,11 +79,7 @@ class CdaComplianceService
                 $report = CdaAnnualReport::create($attrs);
             }
 
-            activity()
-                ->performedOn($report)
-                ->causedBy($operator)
-                ->withProperties(['report_year' => $year])
-                ->log('cda_annual_report_compiled');
+
 
             return $report;
         });
@@ -124,10 +120,7 @@ class CdaComplianceService
                 'finalized_at' => now(),
             ]);
 
-            activity()
-                ->performedOn($report)
-                ->causedBy($operator)
-                ->log('cda_annual_report_finalized');
+
 
             return $report->fresh();
         });
@@ -151,11 +144,7 @@ class CdaComplianceService
                 'notes'                => $data['notes'] ?? $report->notes,
             ]);
 
-            activity()
-                ->performedOn($report)
-                ->causedBy($operator)
-                ->withProperties(['submission_reference' => $data['submission_reference'] ?? null])
-                ->log('cda_annual_report_submitted');
+
 
             return $report->fresh();
         });
@@ -238,11 +227,7 @@ class CdaComplianceService
                 'notes'             => $data['notes'] ?? null,
             ]);
 
-            activity()
-                ->performedOn($record)
-                ->causedBy($operator)
-                ->withProperties(['aga_number' => $record->aga_number, 'year' => $record->meeting_year])
-                ->log('aga_record_created');
+
 
             return $record;
         });
@@ -298,10 +283,7 @@ class CdaComplianceService
                 'finalized_at' => now(),
             ]);
 
-            activity()
-                ->performedOn($record)
-                ->causedBy($operator)
-                ->log('aga_record_finalized');
+
 
             return $record->fresh();
         });

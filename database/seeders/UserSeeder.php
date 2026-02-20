@@ -16,128 +16,128 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        $store = Store::first();
+        $store      = Store::first();
         $mainBranch = Branch::where('is_main', true)->first();
-        $marikina = Branch::where('is_main', false)->first();
+        $satellite  = Branch::where('is_main', false)->first();
 
-        // 1. Owner
+        // 1. General Manager / Administrator
         User::create([
-            'uuid' => Str::uuid(),
-            'store_id' => $store->id,
-            'branch_id' => $mainBranch->id,
-            'name' => 'Juan Cruz',
-            'email' => 'juan@jmhardware.ph',
-            'password' => Hash::make('password'),
-            'phone' => '0917-123-4567',
-            'role' => 'owner',
-            'is_active' => true,
+            'uuid'              => Str::uuid(),
+            'store_id'          => $store->id,
+            'branch_id'         => $mainBranch->id,
+            'name'              => 'Danilo Macaraeg',
+            'email'             => 'danilo.macaraeg@snlsimpc.coop',
+            'password'          => Hash::make('password'),
+            'phone'             => '0917-456-7801',
+            'role'              => 'owner',
+            'is_active'         => true,
             'email_verified_at' => now(),
-            'last_login_at' => now()->subHours(2),
+            'last_login_at'     => now()->subHours(2),
         ]);
 
-        // 2. Manager - QC Main
+        // 2. Store Manager – Poblacion Main
         User::create([
-            'uuid' => Str::uuid(),
-            'store_id' => $store->id,
-            'branch_id' => $mainBranch->id,
-            'name' => 'Maria Santos',
-            'email' => 'maria.santos@jmhardware.ph',
-            'password' => Hash::make('password'),
-            'phone' => '0918-234-5678',
-            'role' => 'manager',
-            'is_active' => true,
+            'uuid'              => Str::uuid(),
+            'store_id'          => $store->id,
+            'branch_id'         => $mainBranch->id,
+            'name'              => 'Evelyn Buenaventura',
+            'email'             => 'evelyn.buenaventura@snlsimpc.coop',
+            'password'          => Hash::make('password'),
+            'phone'             => '0918-321-6540',
+            'role'              => 'manager',
+            'is_active'         => true,
             'email_verified_at' => now(),
-            'last_login_at' => now()->subHours(4),
+            'last_login_at'     => now()->subHours(3),
         ]);
 
-        // 3. Manager - Marikina
+        // 3. Store Manager – Satellite (Brgy. Tagumpay)
         User::create([
-            'uuid' => Str::uuid(),
-            'store_id' => $store->id,
-            'branch_id' => $marikina->id,
-            'name' => 'Roberto Garcia',
-            'email' => 'roberto.garcia@jmhardware.ph',
-            'password' => Hash::make('password'),
-            'phone' => '0919-345-6789',
-            'role' => 'manager',
-            'is_active' => true,
+            'uuid'              => Str::uuid(),
+            'store_id'          => $store->id,
+            'branch_id'         => $satellite->id,
+            'name'              => 'Rodrigo Palabay',
+            'email'             => 'rodrigo.palabay@snlsimpc.coop',
+            'password'          => Hash::make('password'),
+            'phone'             => '0919-654-3217',
+            'role'              => 'manager',
+            'is_active'         => true,
             'email_verified_at' => now(),
-            'last_login_at' => now()->subHours(5),
+            'last_login_at'     => now()->subHours(5),
         ]);
 
-        // 4. Cashier - QC Main
+        // 4. Cashier / Teller – Main (POS & loan/savings counter)
         User::create([
-            'uuid' => Str::uuid(),
-            'store_id' => $store->id,
-            'branch_id' => $mainBranch->id,
-            'name' => 'Ana Reyes',
-            'email' => 'ana.reyes@jmhardware.ph',
-            'password' => Hash::make('password'),
-            'phone' => '0920-456-7890',
-            'role' => 'cashier',
-            'is_active' => true,
+            'uuid'              => Str::uuid(),
+            'store_id'          => $store->id,
+            'branch_id'         => $mainBranch->id,
+            'name'              => 'Rowena Castillo',
+            'email'             => 'rowena.castillo@snlsimpc.coop',
+            'password'          => Hash::make('password'),
+            'phone'             => '0920-789-4561',
+            'role'              => 'cashier',
+            'is_active'         => true,
             'email_verified_at' => now(),
-            'last_login_at' => now()->subMinutes(30),
+            'last_login_at'     => now()->subMinutes(45),
         ]);
 
-        // 5. Cashier - QC Main
+        // 5. Cashier / Teller – Main (second window)
         User::create([
-            'uuid' => Str::uuid(),
-            'store_id' => $store->id,
-            'branch_id' => $mainBranch->id,
-            'name' => 'Pedro Lopez',
-            'email' => 'pedro.lopez@jmhardware.ph',
-            'password' => Hash::make('password'),
-            'phone' => '0921-567-8901',
-            'role' => 'cashier',
-            'is_active' => true,
+            'uuid'              => Str::uuid(),
+            'store_id'          => $store->id,
+            'branch_id'         => $mainBranch->id,
+            'name'              => 'Noel Domingo',
+            'email'             => 'noel.domingo@snlsimpc.coop',
+            'password'          => Hash::make('password'),
+            'phone'             => '0921-012-3456',
+            'role'              => 'cashier',
+            'is_active'         => true,
             'email_verified_at' => now(),
-            'last_login_at' => now()->subDays(1),
+            'last_login_at'     => now()->subHours(1),
         ]);
 
-        // 6. Cashier - Marikina
+        // 6. Cashier / Teller – Satellite
         User::create([
-            'uuid' => Str::uuid(),
-            'store_id' => $store->id,
-            'branch_id' => $marikina->id,
-            'name' => 'Sofia Ramos',
-            'email' => 'sofia.ramos@jmhardware.ph',
-            'password' => Hash::make('password'),
-            'phone' => '0922-678-9012',
-            'role' => 'cashier',
-            'is_active' => true,
+            'uuid'              => Str::uuid(),
+            'store_id'          => $store->id,
+            'branch_id'         => $satellite->id,
+            'name'              => 'Gloria Reyes',
+            'email'             => 'gloria.reyes@snlsimpc.coop',
+            'password'          => Hash::make('password'),
+            'phone'             => '0922-345-6789',
+            'role'              => 'cashier',
+            'is_active'         => true,
             'email_verified_at' => now(),
-            'last_login_at' => now()->subHours(1),
+            'last_login_at'     => now()->subHours(2),
         ]);
 
-        // 7. Inventory Staff - QC Main
+        // 7. Loan Officer
         User::create([
-            'uuid' => Str::uuid(),
-            'store_id' => $store->id,
-            'branch_id' => $mainBranch->id,
-            'name' => 'Carlos Mendoza',
-            'email' => 'carlos.mendoza@jmhardware.ph',
-            'password' => Hash::make('password'),
-            'phone' => '0923-789-0123',
-            'role' => 'inventory_staff',
-            'is_active' => true,
+            'uuid'              => Str::uuid(),
+            'store_id'          => $store->id,
+            'branch_id'         => $mainBranch->id,
+            'name'              => 'Arsenio Valdez',
+            'email'             => 'arsenio.valdez@snlsimpc.coop',
+            'password'          => Hash::make('password'),
+            'phone'             => '0923-678-9012',
+            'role'              => 'loan_officer',
+            'is_active'         => true,
             'email_verified_at' => now(),
-            'last_login_at' => now()->subHours(6),
+            'last_login_at'     => now()->subHours(4),
         ]);
 
-        // 8. Inventory Staff - Marikina
+        // 8. Inventory / Bodega Staff – Main
         User::create([
-            'uuid' => Str::uuid(),
-            'store_id' => $store->id,
-            'branch_id' => $marikina->id,
-            'name' => 'Linda Fernandez',
-            'email' => 'linda.fernandez@jmhardware.ph',
-            'password' => Hash::make('password'),
-            'phone' => '0924-890-1234',
-            'role' => 'inventory_staff',
-            'is_active' => true,
+            'uuid'              => Str::uuid(),
+            'store_id'          => $store->id,
+            'branch_id'         => $mainBranch->id,
+            'name'              => 'Benedicto Tolentino',
+            'email'             => 'benedicto.tolentino@snlsimpc.coop',
+            'password'          => Hash::make('password'),
+            'phone'             => '0924-901-2345',
+            'role'              => 'inventory_staff',
+            'is_active'         => true,
             'email_verified_at' => now(),
-            'last_login_at' => now()->subHours(8),
+            'last_login_at'     => now()->subHours(6),
         ]);
     }
 }

@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('email'); // Not globally unique, unique per store
             $table->string('password');
             $table->string('phone', 20)->nullable();
-            $table->enum('role', ['owner', 'manager', 'cashier', 'inventory_staff']);
+            $table->enum('role', ['owner', 'manager', 'cashier', 'inventory_staff', 'loan_officer']);
             $table->string('avatar_path', 500)->nullable();
             $table->boolean('is_active')->default(true);
             $table->timestamp('last_login_at')->nullable();

@@ -16,27 +16,29 @@ class BranchSeeder extends Seeder
     {
         $store = Store::first();
 
+        // Main store at the Poblacion (town center)
         Branch::create([
-            'uuid' => Str::uuid(),
+            'uuid'     => Str::uuid(),
             'store_id' => $store->id,
-            'name' => 'JM Hardware QC Main',
-            'address' => '123 Commonwealth Avenue, Barangay Holy Spirit',
-            'city' => 'Quezon City',
-            'province' => 'Metro Manila',
-            'phone' => '(02) 8123-4567',
-            'is_main' => true,
+            'name'     => 'SNLSI MPC – Poblacion Main Store',
+            'address'  => 'Purok 3, Barangay Poblacion',
+            'city'     => 'San Isidro',
+            'province' => 'Nueva Ecija',
+            'phone'    => '(044) 940-1234',
+            'is_main'  => true,
             'is_active' => true,
         ]);
 
+        // Satellite store serving the far-flung barangays
         Branch::create([
-            'uuid' => Str::uuid(),
+            'uuid'     => Str::uuid(),
             'store_id' => $store->id,
-            'name' => 'JM Hardware Marikina',
-            'address' => '456 J.P. Rizal Street, Barangay Sta. Elena',
-            'city' => 'Marikina City',
-            'province' => 'Metro Manila',
-            'phone' => '(02) 8987-6543',
-            'is_main' => false,
+            'name'     => 'SNLSI MPC – Brgy. Tagumpay Satellite Store',
+            'address'  => 'Purok 1, Barangay Tagumpay',
+            'city'     => 'San Isidro',
+            'province' => 'Nueva Ecija',
+            'phone'    => '0917-856-2341',
+            'is_main'  => false,
             'is_active' => true,
         ]);
     }

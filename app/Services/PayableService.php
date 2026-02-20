@@ -72,17 +72,7 @@ class PayableService
                 'payment_due_date' => $dueDate,
             ]);
 
-            // Log activity
-            activity()
-                ->performedOn($supplier)
-                ->causedBy(auth()->user())
-                ->withProperties([
-                    'transaction_id' => $transaction->id,
-                    'purchase_order_id' => $purchaseOrder->id,
-                    'amount' => $amount / 100,
-                    'due_date' => $dueDate->toDateString(),
-                ])
-                ->log('AP invoice created for supplier');
+
 
             return $this->payableTransactionRepo->with(['purchaseOrder', 'supplier'])->find($transaction->id);
         });
@@ -180,17 +170,7 @@ class PayableService
             // Update supplier's total outstanding
             $this->updateOutstandingBalance($supplier);
 
-            // Log activity
-            activity()
-                ->performedOn($supplier)
-                ->causedBy(auth()->user())
-                ->withProperties([
-                    'transaction_id' => $transaction->id,
-                    'amount' => $amount / 100,
-                    'method' => $method,
-                    'applied_to' => $appliedTo,
-                ])
-                ->log('Payment made to supplier');
+
 
             return [
                 'transaction' => $this->payableTransactionRepo->with(['supplier'])->find($transaction->id),

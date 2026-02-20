@@ -114,11 +114,7 @@ class LoanService
             // Persist amortization schedule
             $this->persistSchedule($loan, $computed['schedule']);
 
-            activity()
-                ->performedOn($loan)
-                ->causedBy($operator)
-                ->withProperties(['principal_centavos' => $principalCentavos, 'term_months' => $termMonths])
-                ->log('loan_application_submitted');
+
 
             return $loan->load(['customer', 'loanProduct', 'amortizationSchedules']);
         });
@@ -142,10 +138,7 @@ class LoanService
                 'approved_by'  => $approver->id,
             ]);
 
-            activity()
-                ->performedOn($loan)
-                ->causedBy($approver)
-                ->log('loan_approved');
+
 
             return $loan->fresh();
         });
@@ -165,11 +158,7 @@ class LoanService
             'rejection_reason' => $reason,
         ]);
 
-        activity()
-            ->performedOn($loan)
-            ->causedBy($rejecter)
-            ->withProperties(['reason' => $reason])
-            ->log('loan_rejected');
+
 
         return $loan->fresh();
     }
@@ -230,11 +219,7 @@ class LoanService
                 'net_proceeds'       => $netProceedsCentavos,
             ]);
 
-            activity()
-                ->performedOn($loan)
-                ->causedBy($disburser)
-                ->withProperties(['disbursement_date' => $disbursementDate->toDateString()])
-                ->log('loan_disbursed');
+
 
             return $loan->fresh();
         });
@@ -388,17 +373,7 @@ class LoanService
                 'notes'            => $data['notes'] ?? null,
             ]);
 
-            activity()
-                ->performedOn($payment)
-                ->causedBy($operator)
-                ->withProperties([
-                    'amount_centavos'    => $paymentCentavos,
-                    'principal_portion'  => $principalPortion,
-                    'interest_portion'   => $interestPortion,
-                    'penalty_portion'    => $penaltyPortion,
-                    'balance_after'      => $newOutstandingBalance,
-                ])
-                ->log('loan_payment_recorded');
+
 
             return $payment;
         });
@@ -441,10 +416,7 @@ class LoanService
                 'reversed_by' => $operator->id,
             ]);
 
-            activity()
-                ->performedOn($payment)
-                ->causedBy($operator)
-                ->log('loan_payment_reversed');
+
 
             return $payment->fresh();
         });
@@ -567,11 +539,7 @@ class LoanService
             ]);
         });
 
-        activity()
-            ->performedOn($penalty)
-            ->causedBy($operator)
-            ->withProperties(['waived_amount_centavos' => $waivedAmountCentavos, 'reason' => $reason])
-            ->log('loan_penalty_waived');
+
 
         return $penalty->fresh();
     }

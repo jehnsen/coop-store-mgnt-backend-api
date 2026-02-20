@@ -128,11 +128,7 @@ class PatronageRefundService
                 'member_count'           => count($allocations),
             ]);
 
-            activity()
-                ->performedOn($batch)
-                ->causedBy($operator)
-                ->withProperties(['member_count' => count($allocations), 'total_allocated' => $totalAllocated])
-                ->log('patronage_refund_batch_computed');
+
 
             return [
                 'member_count'           => count($allocations),
@@ -164,10 +160,7 @@ class PatronageRefundService
                 'notes'       => $data['notes'] ?? $batch->notes,
             ]);
 
-            activity()
-                ->performedOn($batch)
-                ->causedBy($operator)
-                ->log('patronage_refund_batch_approved');
+
 
             return $batch->fresh();
         });
@@ -228,11 +221,7 @@ class PatronageRefundService
             $newBatchStatus = ($resolved >= $total) ? 'completed' : 'distributing';
             $batch->update(['status' => $newBatchStatus]);
 
-            activity()
-                ->performedOn($allocation)
-                ->causedBy($operator)
-                ->withProperties(['allocation_amount' => $allocationAmount, 'payment_method' => $data['payment_method']])
-                ->log('patronage_refund_distribution_recorded');
+
 
             return $allocation->fresh();
         });
@@ -271,11 +260,7 @@ class PatronageRefundService
             $newBatchStatus = ($resolved >= $total) ? 'completed' : 'distributing';
             $batch->update(['status' => $newBatchStatus]);
 
-            activity()
-                ->performedOn($allocation)
-                ->causedBy($operator)
-                ->withProperties(['notes' => $data['notes'] ?? null])
-                ->log('patronage_refund_allocation_forfeited');
+
 
             return $allocation->fresh();
         });

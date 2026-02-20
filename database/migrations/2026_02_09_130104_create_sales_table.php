@@ -19,6 +19,7 @@ return new class extends Migration
             $table->foreignId('customer_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete(); // Cashier
             $table->string('sale_number')->unique(); // INV-2026-000001
+            $table->timestamp('sale_date')->nullable();
             $table->enum('price_tier', ['retail', 'wholesale', 'contractor'])->default('retail');
             $table->bigInteger('subtotal_amount')->default(0); // in centavos (before order-level discount)
             $table->enum('discount_type', ['percentage', 'fixed'])->nullable();
@@ -45,6 +46,7 @@ return new class extends Migration
             $table->index('status');
             $table->index('payment_status');
             $table->index('created_at');
+            $table->index('sale_date');
         });
     }
 

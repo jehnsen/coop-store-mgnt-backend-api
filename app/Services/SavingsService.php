@@ -44,10 +44,7 @@ class SavingsService
                 'notes'          => $data['notes'] ?? null,
             ]);
 
-            activity()
-                ->performedOn($account)
-                ->withProperties(['savings_type' => $account->savings_type])
-                ->log('savings_account_opened');
+
 
             return $account;
         });
@@ -98,14 +95,7 @@ class SavingsService
                     'last_transaction_date' => $transaction->transaction_date,
                 ]);
 
-            activity()
-                ->performedOn($transaction)
-                ->causedBy($operator)
-                ->withProperties([
-                    'amount'        => $amountCentavos / 100,
-                    'balance_after' => $balanceAfter / 100,
-                ])
-                ->log('savings_deposit_recorded');
+
 
             return $transaction;
         });
@@ -164,14 +154,7 @@ class SavingsService
                     'last_transaction_date' => $transaction->transaction_date,
                 ]);
 
-            activity()
-                ->performedOn($transaction)
-                ->causedBy($operator)
-                ->withProperties([
-                    'amount'        => $amountCentavos / 100,
-                    'balance_after' => $balanceAfter / 100,
-                ])
-                ->log('savings_withdrawal_recorded');
+
 
             return $transaction;
         });
@@ -225,14 +208,7 @@ class SavingsService
                     'last_transaction_date' => $transaction->transaction_date,
                 ]);
 
-            activity()
-                ->performedOn($transaction)
-                ->causedBy($operator)
-                ->withProperties([
-                    'interest_amount' => $interestCentavos / 100,
-                    'balance_after'   => $balanceAfter / 100,
-                ])
-                ->log('savings_interest_credited');
+
 
             return $transaction;
         });
@@ -325,11 +301,7 @@ class SavingsService
                 ->where('id', $account->id)
                 ->update($updates);
 
-            activity()
-                ->performedOn($transaction)
-                ->causedBy($operator)
-                ->withProperties(['amount' => $amountCentavos / 100])
-                ->log('savings_transaction_reversed');
+
 
             return $transaction->fresh();
         });
@@ -376,11 +348,7 @@ class SavingsService
                     'current_balance' => 0,
                 ]);
 
-            activity()
-                ->performedOn($account)
-                ->causedBy($operator)
-                ->withProperties(['payout' => $balanceCentavos / 100])
-                ->log('savings_account_closed');
+
 
             return $account->fresh();
         });
@@ -538,17 +506,7 @@ class SavingsService
                 'notes'             => $data['notes'] ?? null,
             ]);
 
-            activity()
-                ->performedOn($td)
-                ->causedBy($operator)
-                ->withProperties([
-                    'principal'       => $principalCentavos / 100,
-                    'interest_rate'   => $annualRate,
-                    'term_months'     => $termMonths,
-                    'maturity_date'   => $maturityDate->toDateString(),
-                    'expected_interest' => $expectedInterest / 100,
-                ])
-                ->log('time_deposit_placed');
+
 
             return $td->load('customer:id,uuid,name,member_id');
         });
@@ -637,11 +595,7 @@ class SavingsService
                     'total_interest_earned' => DB::raw("total_interest_earned + {$interestCentavos}"),
                 ]);
 
-            activity()
-                ->performedOn($tx)
-                ->causedBy($operator)
-                ->withProperties(['interest' => $interestCentavos / 100])
-                ->log('time_deposit_interest_accrued');
+
 
             return $tx;
         });
@@ -713,14 +667,7 @@ class SavingsService
                     'matured_at'            => now(),
                 ]);
 
-            activity()
-                ->performedOn($tx)
-                ->causedBy($operator)
-                ->withProperties([
-                    'payout'   => $payout / 100,
-                    'interest' => ($alreadyEarned + $newInterest) / 100,
-                ])
-                ->log('time_deposit_matured');
+
 
             return $tx;
         });
@@ -789,15 +736,7 @@ class SavingsService
                     'pre_termination_reason'  => $data['reason'] ?? null,
                 ]);
 
-            activity()
-                ->performedOn($tx)
-                ->causedBy($operator)
-                ->withProperties([
-                    'net_payout'   => $netPayout / 100,
-                    'earned_interest' => $earnedInterest / 100,
-                    'penalty'      => $penaltyCentavos / 100,
-                ])
-                ->log('time_deposit_pre_terminated');
+
 
             return $tx;
         });
@@ -865,15 +804,7 @@ class SavingsService
                     'rollover_count'         => $td->rollover_count + 1,
                 ]);
 
-            activity()
-                ->performedOn($newTd)
-                ->causedBy($operator)
-                ->withProperties([
-                    'from_td_number'   => $td->account_number,
-                    'rollover_count'   => $td->rollover_count + 1,
-                    'new_principal'    => $rolloverPrincipal / 100,
-                ])
-                ->log('time_deposit_rolled_over');
+
 
             return $newTd->fresh();
         });

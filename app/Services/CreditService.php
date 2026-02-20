@@ -155,16 +155,7 @@ class CreditService
                 'is_reversed'      => false,
             ]);
 
-            activity()
-                ->performedOn($customer)
-                ->causedBy(auth()->user())
-                ->withProperties([
-                    'wallet_id'   => $wallet->id,
-                    'wallet_name' => $wallet->name,
-                    'sale_id'     => $sale->id,
-                    'amount'      => $amount / 100,
-                ])
-                ->log('Wallet charged for sale');
+
 
             return $this->creditTransactionRepo
                 ->with(['customer', 'sale', 'wallet'])
@@ -261,16 +252,7 @@ class CreditService
                 'total_outstanding' => $balanceAfter,
             ]);
 
-            activity()
-                ->performedOn($customer)
-                ->causedBy(auth()->user())
-                ->withProperties([
-                    'transaction_id' => $transaction->id,
-                    'sale_id'        => $sale->id,
-                    'amount'         => $amount / 100,
-                    'due_date'       => $dueDate->toDateString(),
-                ])
-                ->log('Credit charged to customer account');
+
 
             return $this->creditTransactionRepo->with(['sale', 'customer'])->find($transaction->id);
         });
@@ -358,16 +340,7 @@ class CreditService
 
             $this->updateOutstandingBalance($customer);
 
-            activity()
-                ->performedOn($customer)
-                ->causedBy(auth()->user())
-                ->withProperties([
-                    'transaction_id' => $transaction->id,
-                    'amount'         => $amount / 100,
-                    'method'         => $method,
-                    'applied_to'     => $appliedTo,
-                ])
-                ->log('Payment received from customer');
+
 
             return [
                 'transaction'      => $this->creditTransactionRepo->with(['customer'])->find($transaction->id),
@@ -541,15 +514,7 @@ class CreditService
         DB::transaction(function () use ($customer, $newLimit, $oldLimit, $reason) {
             $this->customerRepo->update($customer->id, ['credit_limit' => $newLimit]);
 
-            activity()
-                ->performedOn($customer)
-                ->causedBy(auth()->user())
-                ->withProperties([
-                    'old_limit' => $oldLimit / 100,
-                    'new_limit' => $newLimit / 100,
-                    'reason'    => $reason,
-                ])
-                ->log('Credit limit adjusted');
+
         });
 
         return $this->customerRepo->find($customer->id);

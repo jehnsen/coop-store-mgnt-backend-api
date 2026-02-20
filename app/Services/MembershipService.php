@@ -53,11 +53,7 @@ class MembershipService
             // Mark customer as applicant
             $customer->update(['member_status' => 'applicant']);
 
-            activity()
-                ->performedOn($application)
-                ->causedBy($operator)
-                ->withProperties(['application_number' => $application->application_number])
-                ->log('membership_application_submitted');
+
 
             return $application;
         });
@@ -132,11 +128,7 @@ class MembershipService
                 }
             }
 
-            activity()
-                ->performedOn($application)
-                ->causedBy($operator)
-                ->withProperties(['member_id' => $memberId, 'customer_id' => $customer->id])
-                ->log('membership_application_approved');
+
 
             return $application->fresh();
         });
@@ -168,11 +160,7 @@ class MembershipService
             // Revert applicant status
             $application->customer->update(['member_status' => null]);
 
-            activity()
-                ->performedOn($application)
-                ->causedBy($operator)
-                ->withProperties(['reason' => $data['rejection_reason']])
-                ->log('membership_application_rejected');
+
 
             return $application->fresh();
         });
@@ -202,11 +190,7 @@ class MembershipService
                 'notes'            => $data['notes'] ?? null,
             ]);
 
-            activity()
-                ->performedOn($fee)
-                ->causedBy($operator)
-                ->withProperties(['fee_type' => $fee->fee_type, 'amount' => $fee->getRawOriginal('amount')])
-                ->log('membership_fee_recorded');
+
 
             return $fee;
         });
@@ -228,10 +212,7 @@ class MembershipService
                 'reversed_by' => $operator->id,
             ]);
 
-            activity()
-                ->performedOn($fee)
-                ->causedBy($operator)
-                ->log('membership_fee_reversed');
+
 
             return $fee->fresh();
         });
@@ -249,11 +230,7 @@ class MembershipService
         return DB::transaction(function () use ($customer, $data, $operator) {
             $customer->update(['member_status' => 'inactive']);
 
-            activity()
-                ->performedOn($customer)
-                ->causedBy($operator)
-                ->withProperties(['reason' => $data['reason'] ?? null])
-                ->log('member_deactivated');
+
 
             return $customer->fresh();
         });
@@ -286,11 +263,7 @@ class MembershipService
                 ]);
             }
 
-            activity()
-                ->performedOn($customer)
-                ->causedBy($operator)
-                ->withProperties(['notes' => $data['notes'] ?? null])
-                ->log('member_reinstated');
+
 
             return $customer->fresh();
         });
@@ -312,11 +285,7 @@ class MembershipService
                 'member_status' => 'expelled',
             ]);
 
-            activity()
-                ->performedOn($customer)
-                ->causedBy($operator)
-                ->withProperties(['reason' => $data['reason'] ?? null])
-                ->log('member_expelled');
+
 
             return $customer->fresh();
         });
@@ -337,11 +306,7 @@ class MembershipService
                 'member_status' => 'resigned',
             ]);
 
-            activity()
-                ->performedOn($customer)
-                ->causedBy($operator)
-                ->withProperties(['reason' => $data['reason'] ?? null])
-                ->log('member_resigned');
+
 
             return $customer->fresh();
         });
